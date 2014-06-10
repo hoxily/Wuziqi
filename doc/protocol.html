@@ -1,0 +1,135 @@
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <title>五子棋游戏 协议定义</title>
+        <script type="text/javascript" src="script/jquery-2.1.0.min.js"></script>
+    </head>
+    <body>
+    <em><p>协议版本: wuziqi-1.0.0.0</p></em>
+    <h1>概述</h1>
+    <p>通讯过程由服务端与客户端的消息报文请求与响应组成；消息报文与消息报文之间以消息分界符分开；消息报文与消息报文分界符统一以UTF-8编码。关于为什么选择UTF-8编码，请参考<a target="_blank" href="http://www.utf8everywhere.org/">UTF-8 Everywhere Manifesto</a></p>
+    <h2>术语表</h2>
+    <ul>
+    <li>消息报文（Message）: 消息报文是服务端与客户端交流的基本单元。一个请求一般由一个消息报文组成，对应应答则可能由多个消息报文组成。受计算机物理内存限制以及安全性考虑，任意一条消息报文的编码后的长度需要限制为特定长度，例如512字节、1024字节等。</li>
+    <li>请求（Request）: 与应答配合实现特定功能。</li>
+    <li>应答（Response）: 与请求配合实现特定功能。</li>
+    <li>消息报文分界符（Message Delimiters）: 用于分割前先两条消息报文的分割符（字符串）。例如Windows纯文本中分割前后两行的回车换行（CRLF，0x0d 0x0a）。</li>
+    <li>心跳机制（HeartBeat）: 当网络环境恶劣时，客户端有时候已经断开了连接而服务端却不知道。这样服务端的资源就被浪费在其实早已断开的连接以及相关联的资源上。心跳机制正是应对此情况。服务端通过周期性地发送PING消息请求，如果在限制的超时时间内没有应答则认为客户端已断开连接，那么服务端将主动关闭连接并释放资源。心跳机制可以贯穿整个连接，以应对极端的客户端刚连上就断开的情况。</li>
+    </ul>
+    <h2>消息报文的伪BNF格式<sup>[1]</sup></h2>
+    <div><code>&lt;message&gt;  ::= [':' &lt;prefix&gt; &lt;SPACE&gt; ] &lt;command&gt; &lt;params&gt; &lt;crlf&gt;</code></div>
+<div><code>&lt;prefix&gt;   ::= &lt;guest&gt; | &lt;user&gt;</code></div>
+<div><code>&lt;command&gt;  ::= &lt;letter&gt; { &lt;letter&gt; } | &lt;number&gt; &lt;number&gt; &lt;number&gt;</code></div>
+<div><code>&lt;SPACE&gt;    ::= ' ' { ' ' }</code></div>
+<div><code>&lt;params&gt;   ::= &lt;SPACE&gt; [ ':' &lt;trailing&gt; | &lt;middle&gt; &lt;params&gt; ]</code></div>
+<div><code>&lt;middle&gt;   ::= &lt;Any *non-empty* sequence of octets not including SPACE or NUL or CR or LF, the first of which may not be ':'&gt;</code></div>
+<div><code>&lt;trailing&gt; ::= &lt;Any, possibly *empty*, sequence of octets not including NUL or CR or LF&gt;</code></div>
+<div><code>&lt;crlf&gt;     ::= CR LF</code></div>
+    <h1>消息报文细节定义</h1>
+    <h2>1. 协议版本协商</h2>
+    <p>服务端与客户端建立连接后，首先应该进行协议版本协商。这是因为后续协议可能会随着新功能的加入而不再兼容旧版本协议。当然这是最坏的情况，理想情况是使用着旧版本协议的客户端对服务端的新版本协议请求进行忽略，而不影响旧有的功能。想要使用最新功能只需升级客户端。</p>
+    <p>所以服务端应该询问客户端的版本或者客户端主动报上自身协议版本请求验证，按照兼容规则判断出客户端的协议版本是否兼容当前服务端的版本并将结果返回客户端。</p>
+    <p>如果协议不兼容，连接则可以断开了。客户端应主动提醒用户，给出最新版本下载链接地址，甚至能自动升级。</p>
+    <p>本协议采用客户端主动请求协议兼容性校验，请求命令与应答命令如下：</p>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>请求/应答</th>
+                <th>command</th>
+                <th>params</th>
+                <th>params说明</th>
+                <th>实例</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>请求</td>
+                <td><code>verify</code></td>
+                <td>协议名加版本号</td>
+                <td>协议名固定为"wuziqi", 版本号由四个非负整数构成并以小数点隔开，协议名与版本号之间以减号分隔开来</td>
+                <td><code>verify wuziqi-1.0.0.0</code></td>
+            <tr>
+            <tr>
+                <td>应答</td>
+                <td><code>verify</code></td>
+                <td>验证结果</td>
+                <td>验证结果有两种：1. "yes"；2. "no"；</td>
+                <td><code>verify yes</code></td>
+            </tr>
+        </tbody>
+    </table>
+    <h2>2. 用户登录（Login）</h2>
+    <p>用户帐户由一个独一无二的数字ID标志，其他的有关该用户的信息可由此ID查询得到，比如昵称、邮箱、好友、游戏排名、胜负数、逃跑局数等。除去注册用户的认证，还有游客（Guest）模式。游客模式有极大的限制，比如只允许观战、不能自定义昵称等等。加上限制的原因是为了鼓励用户注册帐户，享受更好的VIP服务 :) 。</p>
+    <p>游客的标志是"g"后面跟一个随机分配的整数。不一定前后两个Guest用户的整数恰好相差1，因为游客有进有出，会有空位留下来。理论上，服务器刚启动时，Guest列表为空，第一个游客用户分配的整数恰好为0.</p>
+    <p>本协议采用客户端主动请求用户认证，注册用户和游客用户的请求应答命令如下。</p>
+    <h3>2.1. 注册用户登录</h3>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>请求/应答</th>
+                <th>command</th>
+                <th>params</th>
+                <th>params说明</th>
+                <th>实例</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>请求</td>
+                <td><code>login</code></td>
+                <td>登录类型加对应所需参数</td>
+                <td>此处登录类型为"user", 需要的额外参数有 &lt;ID&gt; 和 &lt;hashed password&gt;。服务器数据库不存储明文密码，只存储了密码的UTF-8编码的SHA1啥希值，以16进制表达的40位整数。不使用明文密码的教训来自<a target="_blank" href="https://www.google.com.hk/search?q=csdn+%E5%AF%86%E7%A0%81%E6%B3%84%E9%9C%B2&ie=UTF-8">CSDN密码泄露事件</a>。</td>
+                <td><code>login user 10000 5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8</code></td>
+            <tr>
+            <tr>
+                <td>应答</td>
+                <td><code>login</code></td>
+                <td>验证结果</td>
+                <td>验证结果有两种：1. "yes", 同时服务器广播该登录的消息给全体已登录且在线的客户端；2. "no", 不会广播此消息。</td>
+                <td><code>:10000 login yes</code></td>
+            </tr>
+        </tbody>
+    </table>
+    <h3>2.2. 游客用户登录</h3>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>请求/应答</th>
+                <th>command</th>
+                <th>params</th>
+                <th>params说明</th>
+                <th>实例</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>请求</td>
+                <td><code>login</code></td>
+                <td>登录类型</td>
+                <td>此处登录类型为"guest"。</td>
+                <td><code>login guest</code></td>
+            <tr>
+            <tr>
+                <td>应答</td>
+                <td><code>login</code></td>
+                <td>验证结果</td>
+                <td>验证结果有两种：1. "yes", 同时服务器广播该登录的消息给全体已登录且在线的客户端；2. "no", 不会广播此消息。</td>
+                <td><code>:g0 login yes</code></td>
+            </tr>
+        </tbody>
+    </table>
+    <h2>3. 在线状态</h2>
+    </p>用户成功登录后，默认处于大厅处。此处的大厅类似于酒吧大厅，可以询问服务员（也就是服务器）当前已经有几个包间。有两种包间，一种是房主指定名字以及其他属性而请求服务器创建的命名包间。这样子创建的房间，各种规矩受房主控制。比如上锁，只限拥有钥匙的好朋友进来等。另一种房间则是为等待匹配的众多玩家中的配对成功的两个玩家创建的临时对战房间。创建完房间后，立即开始对战，对战完成后房间回收。当然，不管哪种房间，对战过程中可以邀请处于非对战状态的好友观战。</p>
+    <p>对于命名包间，刚创建完成后，房主占据对战双方中的一个名额。随着其他用户的进入观众席，其中的注册用户可以选择上场进入对战位置准备与房主对战，也可以选择继续当观众。对战开局前，所有玩家可以自由进出与聊天。对战开始后，观众可以随意离席或者回来。对战过程中，如果挑战者中途离开，那么对战结束；如果房主离开，那么对战结束，并且房间服务器回收，房间内所有玩家被请到大厅处。如果对战是正常决出胜负平，那么挑战者会被请回观众席，所有观众可以选择上场或不上场。</p>
+    <p>注册用户需要主动发出等待匹配的请求（只有处于大厅状态的用户允许发出此请求）后，将会处于长达1分钟的等待匹配状态，该状态下将只能待在大厅内，不可以去包间。一分钟过后，恢复自由状态。这样做的目的是为了防止打扰到只想聊个天或者观看精彩对战的玩家。</p>
+    <p>一般来说，玩家同一时刻只能处于一个房间，比如初始的大厅，房主创建的命名房间以及随机匹配而由系统创建的临时房间。玩家在不同的房间里还具有不同的状态（角色）。例如在大厅里可以有等待匹配状态与自由状态；在命名房间里的房主、挑战者、观众；在临时房间里的对战双方、观众。</p>
+    <p>各状态的迁移图如下所示，结点间的连线上描述了迁移条件：</p>
+    <p><img src="image/protocol-state-transition.png" alt="在线状态迁移图" title="在线状态迁移图" /></p>
+    <p><a href="protocol-state-transition.txt">在线状态迁移图原始文本</a>（请用汉字占英文两倍宽度的等宽字体查看）</p>
+    <h1>参考文档</h1>
+    <div><a target="_blank" href="http://tools.ietf.org/html/rfc1459.html">RFC 1459 - Internet Relay Chat Protocol</a></div>
+    <div><a target="_blank" href="http://tools.ietf.org/html/rfc1459.html#section-2.3.1">[1] RFC1459 2.3.1 Message format in 'pseudo' BNF</a></div>
+    <hr />
+    <p><a href="index.html">返回主页</a></p>
+    </body>
+</html>
