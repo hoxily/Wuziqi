@@ -1,3 +1,5 @@
+原文地址：[https://computing.llnl.gov/tutorials/pthreads/](https://computing.llnl.gov/tutorials/pthreads/ "POSIX Threads Programming")
+
 # POSIX Threads Programming
 1. Abstract
 2. Pthreads Overview
@@ -119,4 +121,4 @@ Level/Prerequisites: This tutorial is one of the eight tutorials in the 4+ day "
     - Two pointers having the same value point to the same data.
     - 拥有相同值的两个指针指向同一块数据。
     - Reading and writing to the same memory locations is possible, and therefore requires explicit synchronization by the programmer.
-    - 同时读和写同一块内存地址是可能的，因此需要编程人员作出明确的同步。
+    - 同时读和写同一个内存地址是可能的，因此需要编程人员作出明确的同步。
