@@ -122,3 +122,223 @@ Level/Prerequisites: This tutorial is one of the eight tutorials in the 4+ day "
     - 拥有相同值的两个指针指向同一块数据。
     - Reading and writing to the same memory locations is possible, and therefore requires explicit synchronization by the programmer.
     - 同时读和写同一个内存地址是可能的，因此需要编程人员作出明确的同步。
+
+### What are Pthreads?
+### Pthread是什么？
+- Historically, hardware vendors have implemented their own proprietary versions of threads. These implementations differed substantially from each other making it difficult for programmers to develop portable threaded applications.
+- 由于历史原因，硬件供应商实现了他们自己的专有的线程版本。这些实现相互之间有大量的不同，这使得程序员开发可移植的多线程应用变得很难。
+- In order to take full advantage of the capabilities provided by threads, a standardized programming interface was required.
+- 为了充分利用线程提供的能力，一个标准化的编程接口不可缺少。
+    - For UNIX systems, this interface has been specified by the IEEE POSIX 1003.1c standard (1995).
+    - 对UNIX系统而言，这个接口被IEEE POSIX 1003.1c标准所指定。
+    - Implementations adhering to this standard are referred to as POSIX threads, or Pthreads.
+    - 在这里所指的对标准的实现称为POSIX线程，也叫Pthread。
+    - Most hardware vendors now offer Pthreads in addition to their proprietary API's.
+    - 大多数硬件供应商现在除了他们专有的API之外都提供了Pthread。
+- The POSIX standard has continued to evolve and undergo revisions, including the Pthreads specification.
+- POSIX标准一直在发展并经受修订，包括Pthread设计规格。
+- Some useful links:
+- 一些有用的链接：
+    - [POSIX 1003.1-2008](http://standards.ieee.org/findstds/standard/1003.1-2008.html)
+    - [posix faq](www.opengroup.org/austin/papers/posix_faq.html)
+    - [ieee std](www.unix.org/version3/ieee_std.html)
+- Pthreads are defined as a set of C language programming types and procedure calls, implemented with a pthread.h header/include file and a thread library - though this library may be part of another library, such as libc, in some implementations.
+- Pthread被定义为一系列C语言编程里的类型和过程调用，随一个pthread.h头文件/include文件以及一个线程库而实现。尽管在某些实现里，这线程库是作为另一个库的一部分而存在，例如libc。
+
+### Why Pthreads?
+### 为什么是Pthread？
+#### Light Weight:
+#### 轻量
+- When compared to the cost of creating and managing a process, a thread can be created with much less operating system overhead. Managing threads requires fewer system resources than managing processes.
+- 与创建和管理一个进程的消耗相比，一个线程能以相当少的操作系统开销创建出来。管理线程比管理进程所需系统资源更少。
+- For example, the following table compares timing results for the fork() subroutine and the pthread_create() subroutine. Timings reflect 50,000 process/thread creations, were performed with the time utility, and units are in seconds, no optimization flags.
+- 比如说，下表比较了fork()子例程和pthread_create()子例程在时间上的消耗结果。时间反映了50000个进程/线程的创建，用time工具命令执行，单位为秒，没有使用优化标记。
+
+Note: don't expect the sytem and user times to add up to real time, because these are SMP systems with multiple CPUs/cores working on the problem at the same time. At best, these are approximations run on local machines, past and present.
+
+注释：不要妄想系统时间加上用户时间等于实际时间，因为这些是对称多处理器（SMP）系统，拥有多个CPU/核心同时在问题上工作。充其量，在本地机上运行时它们相近，过去与现在。（好别扭的一句话）
+
+<table>
+    <thead>
+        <tr>
+            <th rowspan="2">Platform</th>
+            <th colspan="3">fork()</th>
+            <th colspan="3">pthread_create()</th>
+        </tr>
+        <tr>
+            <th>real</th>
+            <th>user</th>
+            <th>sys</th>
+            <th>real</th>
+            <th>user</th>
+            <th>sys</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Intel 2.6 GHz Xeon E5-2670 (16 cores/node)</td>
+            <td>8.1</td>
+            <td>0.1</td>
+            <td>2.9</td>
+            <td>0.9</td>
+            <td>0.2</td>
+            <td>0.3</td>
+        </tr>
+        <tr>
+            <td>Intel 2.8 GHz Xeon 5660 (12 cores/node)</td>
+            <td>4.4</td>
+            <td>0.4</td>
+            <td>4.3</td>
+            <td>0.7</td>
+            <td>0.2</td>
+            <td>0.5</td>
+        </tr>
+        <tr>
+            <td>AMD 2.3 GHz Opteron (16 cores/node)</td>
+            <td>12.5</td>
+            <td>1.0</td>
+            <td>12.5</td>
+            <td>1.2</td>
+            <td>0.2</td>
+            <td>1.3</td>
+        </tr>
+        <tr>
+            <td>AMD 2.4 GHz Opteron (8 cores/node)</td>
+            <td>17.6</td>
+            <td>2.2</td>
+            <td>15.7</td>
+            <td>1.4</td>
+            <td>0.3</td>
+            <td>1.3</td>
+        </tr>
+        <tr>
+            <td>IBM 4.0 GHz POWER6 (8 cpus/node)</td>
+            <td>9.5</td>
+            <td>0.6</td>
+            <td>8.8</td>
+            <td>1.6</td>
+            <td>0.1</td>
+            <td>0.4</td>
+        </tr>
+        <tr>
+            <td>IBM 1.9 GHz POWER5 p5-575 (8 cpus/node)</td>
+            <td>64.2</td>
+            <td>30.7</td>
+            <td>27.6</td>
+            <td>1.7</td>
+            <td>0.6</td>
+            <td>1.1</td>
+        </tr>
+        <tr>
+            <td>IBM 1.5 GHz POWER4 (8 cpus/node)</td>
+            <td>104.5</td>
+            <td>48.6</td>
+            <td>47.2</td>
+            <td>2.1</td>
+            <td>1.0</td>
+            <td>1.5</td>
+        </tr>
+        <tr>
+            <td>INTEL 2.4 GHz Xeon (2 cpus/node)</td>
+            <td>54.9</td>
+            <td>1.5</td>
+            <td>20.8</td>
+            <td>1.6</td>
+            <td>0.7</td>
+            <td>0.9</td>
+        </tr>
+        <tr>
+            <td>INTEL 1.4 GHz Itanium2 (4 cpus/node)</td>
+            <td>54.5</td>
+            <td>1.1</td>
+            <td>22.2</td>
+            <td>2.0</td>
+            <td>1.2</td>
+            <td>0.6</td>
+        </tr>
+    </tbody>
+</table>
+
+Source: [fork vs thread](https://computing.llnl.gov/tutorials/pthreads/fork_vs_thread.txt "fork_vs_thread.txt")
+
+#### Efficient communications/Data Exchange:
+#### 高效的交流/数据交换
+- The primary motivation for considering the use of Pthreads on a multi-processor architecture is to achieve optimum performance. In particular, if an application is using MPI for on-node communications, there is a potential that performance could be improved by using Pthreads instead.
+- 考虑在多处理器架构上用Pthread的主要动机是达到最佳性能。特别是如果一个应用使用MPI做单点交流，那么有很有可能通过使用Pthread代替MPI让性能得到提升。
+- MPI libraries usually implement on-node task communication via shared memory, which involves at least one memory copy operation (process to process).
+- MPI库通常通过共享内存实现单点任务沟通，这至少牵扯到内存复制操作（进程到进程）。
+- For Pthreads there is no intermediate memory copy required because threads share the same address space within a single process. There is no data transfer, per se. It can be as efficient as simply passing a pointer.
+- 对Pthread来说不存在中间内存复制的需求，因为在同一个单独进程里面线程们共享相同的地址空间。本质上没有数据传输。它可以做到仅仅传输一个指针那样的高效。
+- In the worst case scenario, Pthread communications become more of a cache-to-CPU or memory-to-CPU bandwidth issue. These speeds are much higher than MPI shared memory communications.
+- 在最糟糕的情况下，Pthread交流更多地成为一个缓存至CPU或者CPU至缓存带宽问题。它们的速度远比MPI的内存交流快得多。
+- For example: some local comparisons, past and present, are shown below:
+- 比如：下面展示了过去与现在的一些本地比较：
+
+<table>
+    <thead>
+        <tr>
+            <th>Platform</th>
+            <th>MPI Shared Memory Bandwidth<br>(GB/sec)</th>
+            <th>Pthreads Worst Case<br>Memory-to-CPU Bandwidth <br>(GB/sec)</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Intel 2.6 GHz Xeon E5-2670</td>
+            <td>4.5</td>
+            <td>51.2</td>
+        </tr>
+        <tr>
+            <td>Intel 2.8 GHz Xeon 5660</td>
+            <td>5.6</td>
+            <td>32</td>
+        </tr>
+        <tr>
+            <td>AMD 2.3 GHz Opteron</td>
+            <td>1.8</td>
+            <td>5.3</td>
+        </tr>
+        <tr>
+            <td>AMD 2.4 GHz Opteron</td>
+            <td>1.2</td>
+            <td>5.3</td>
+        </tr>
+        <tr>
+            <td>IBM 1.9 GHz POWER5 p5-575</td>
+            <td>4.1</td>
+            <td>16</td>
+        </tr>
+        <tr>
+            <td>IBM 1.5 GHz POWER4</td>
+            <td>2.1</td>
+            <td>4</td>
+        </tr>
+        <tr>
+            <td>Intel 2.4 GHz Xeon</td>
+            <td>0.3</td>
+            <td>4.3</td>
+        </tr>
+        <tr>
+            <td>Intel 1.4 GHz Itanium 2</td>
+            <td>1.8</td>
+            <td>6.4</td> 
+        </tr>
+    </tbody>
+</table>
+
+#### Other Common Reasons:
+#### 其他常见原因：
+- Threaded applications offer potential performance gains and practical advantages over non-threaded applications in several other ways:
+- 在其他许多方面，多线程应用提供了潜在的性能收益和在非多线程应用之上的实用的优势：
+    - Overlapping CPU work with I/O: For example, a program may have sections where it is performing a long I/O operation. While one thread is waiting for an I/O system call to complete, CPU intensive work can be performed by other threads.
+    - 重叠的CPU工作与I/O：例如，一个程序可能拥有某个执行长时间I/O操作的区块。仅管其中一个线程在等待I/O系统调用的结束，CPU密集的工作可以在另一个线程执行。
+    - Priority/real-time scheduling: tasks which are more important can be scheduled to supersede or interrupt lower priority tasks.
+    - 优先级/实时调度：更重要的任务可以在调度时取代或者中断低优先级的任务。
+    - Asynchronous event handling: tasks which service events of indeterminate frequency and duration can be interleaved. For example, a web server can both transfer data from previous requests and manage the arrival of new requests.
+    - 异步的事件处理：服务不确定频率和持续时间的事件的任务可以交错进行。例如一个Web服务既可以传输先前的请求的数据也可以处理新到来的请求。
+- A perfect example is the typical web browser, where many interleaved tasks can be happening at the same time, and where tasks can vary in priority.
+- 一个完美的例子是典型的WEB浏览器，在这里许多交错的任务在同时发生，任务的优先级可以不同。
+- Another good example is a modern operating system, which makes extensive use of threads. A screenshot of the MS Windows OS and applications using threads is shown below.
+- 另一个好例子是现代操作系统，它广泛地使用了线程。下面展示了微软Windows操作系统和应用程序使用的线程的屏幕截图。
+
+![资源监视器截图](./tutorial-pthreads/resource_monitor.jpg)
