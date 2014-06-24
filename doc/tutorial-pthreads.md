@@ -148,7 +148,7 @@ Level/Prerequisites: This tutorial is one of the eight tutorials in the 4+ day "
 ### Why Pthreads?
 ### 为什么是Pthread？
 #### Light Weight:
-#### 轻量
+#### 轻量：
 - When compared to the cost of creating and managing a process, a thread can be created with much less operating system overhead. Managing threads requires fewer system resources than managing processes.
 - 与创建和管理一个进程的消耗相比，一个线程能以相当少的操作系统开销创建出来。管理线程比管理进程所需系统资源更少。
 - For example, the following table compares timing results for the fork() subroutine and the pthread_create() subroutine. Timings reflect 50,000 process/thread creations, were performed with the time utility, and units are in seconds, no optimization flags.
@@ -262,7 +262,7 @@ Note: don't expect the sytem and user times to add up to real time, because thes
 Source: [fork vs thread](https://computing.llnl.gov/tutorials/pthreads/fork_vs_thread.txt "fork_vs_thread.txt")
 
 #### Efficient communications/Data Exchange:
-#### 高效的交流/数据交换
+#### 高效的交流/数据交换：
 - The primary motivation for considering the use of Pthreads on a multi-processor architecture is to achieve optimum performance. In particular, if an application is using MPI for on-node communications, there is a potential that performance could be improved by using Pthreads instead.
 - 考虑在多处理器架构上用Pthread的主要动机是达到最佳性能。特别是如果一个应用使用MPI做单点交流，那么有很有可能通过使用Pthread代替MPI让性能得到提升。
 - MPI libraries usually implement on-node task communication via shared memory, which involves at least one memory copy operation (process to process).
@@ -331,7 +331,7 @@ Source: [fork vs thread](https://computing.llnl.gov/tutorials/pthreads/fork_vs_t
 - Threaded applications offer potential performance gains and practical advantages over non-threaded applications in several other ways:
 - 在其他许多方面，多线程应用提供了潜在的性能收益和在非多线程应用之上的实用的优势：
     - Overlapping CPU work with I/O: For example, a program may have sections where it is performing a long I/O operation. While one thread is waiting for an I/O system call to complete, CPU intensive work can be performed by other threads.
-    - 重叠的CPU工作与I/O：例如，一个程序可能拥有某个执行长时间I/O操作的区块。仅管其中一个线程在等待I/O系统调用的结束，CPU密集的工作可以在另一个线程执行。
+    - 重叠的CPU工作与I/O：例如，一个程序可能拥有某个执行长时间I/O操作的区块。当其中一个线程在等待I/O系统调用的结束时，CPU密集的工作可以在另一个线程执行。
     - Priority/real-time scheduling: tasks which are more important can be scheduled to supersede or interrupt lower priority tasks.
     - 优先级/实时调度：更重要的任务可以在调度时取代或者中断低优先级的任务。
     - Asynchronous event handling: tasks which service events of indeterminate frequency and duration can be interleaved. For example, a web server can both transfer data from previous requests and manage the arrival of new requests.
