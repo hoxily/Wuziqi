@@ -156,7 +156,7 @@ Level/Prerequisites: This tutorial is one of the eight tutorials in the 4+ day "
 
 Note: don't expect the sytem and user times to add up to real time, because these are SMP systems with multiple CPUs/cores working on the problem at the same time. At best, these are approximations run on local machines, past and present.
 
-注释：不要妄想系统时间加上用户时间等于实际时间，因为这些是对称多处理器（SMP）系统，拥有多个CPU/核心同时在问题上工作。充其量，在本地机上运行时它们相近，过去与现在。（好别扭的一句话）
+注意：不要妄想系统时间加上用户时间等于实际时间，因为这些是对称多处理器（SMP）系统，拥有多个CPU/核心同时在问题上工作。充其量，在本地机上运行时它们相近，不管是过去还是当今的机器。
 
 <table>
     <thead>
@@ -272,7 +272,7 @@ Source: [fork vs thread](https://computing.llnl.gov/tutorials/pthreads/fork_vs_t
 - In the worst case scenario, Pthread communications become more of a cache-to-CPU or memory-to-CPU bandwidth issue. These speeds are much higher than MPI shared memory communications.
 - 在最糟糕的情况下，Pthread交流更多地成为一个缓存至CPU或者CPU至缓存带宽问题。它们的速度远比MPI的内存交流快得多。
 - For example: some local comparisons, past and present, are shown below:
-- 比如：下面展示了过去与现在的一些本地比较：
+- 比如：下面展示了过去与现在的一些本地机器的比较：
 
 <table>
     <thead>
