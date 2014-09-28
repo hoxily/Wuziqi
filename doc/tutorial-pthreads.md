@@ -342,3 +342,40 @@ Source: [fork vs thread](https://computing.llnl.gov/tutorials/pthreads/fork_vs_t
 - 另一个好例子是现代操作系统，它广泛地使用了线程。下面展示了微软Windows操作系统和应用程序使用的线程的屏幕截图。
 
 ![资源监视器截图](./tutorial-pthreads/resource_monitor.jpg)
+
+## Pthreads Overview
+## Pthread概述
+### Designing Threaded Programs
+### 设计多线程程序
+#### Parallel Programming:
+#### 并行编程：
+
+- On modern, multi-core machines, pthreads are ideally suited for parallel programming, and whatever applies to parallel programming in general, applies to parallel pthreads programs.
+- 在现代、多核心的机器上，pthread是理想上适合并行编程，同时适用于通用的并行编程，适用于并行的pthread程序。
+- There are many considerations for designing parallel programs, such as:
+- 设计一个并行程序需要考虑许多，例如：
+    - What type of parallel programming model to use?
+    - 使用哪种类型的并行编程模型？
+    - Problem partitioning
+    - 问题分解
+    - Load balancing
+    - 负载平衡
+    - Communications
+    - 交流
+    - Data dependencies
+    - 数据依赖
+    - Synchronization and race conditions
+    - 同步与竞态条件
+    - Memory issues
+    - 内存问题
+    - I/O issues
+    - I/O问题
+    - Program complexity
+    - 程序复杂性
+    - Programmer effort/costs/time
+    - 编程人员工作量/消耗/时间
+    - ...
+    - ……
+- Covering these topics is beyond the scope of this tutorial, however interested readers can obtain a quick overview in the [Introduction to Parallel Computing](https://computing.llnl.gov/tutorials/parallel_comp) tutorial.
+- 这些主题已经超出了本教程的范围，然而对这些感兴趣的读者可以从[并行计算简介](https://computing.llnl.gov/tutorials/parallel_comp)教程中获得简要概述。
+
