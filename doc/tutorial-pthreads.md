@@ -351,7 +351,7 @@ Source: [fork vs thread](https://computing.llnl.gov/tutorials/pthreads/fork_vs_t
 #### 并行编程：
 
 - On modern, multi-core machines, pthreads are ideally suited for parallel programming, and whatever applies to parallel programming in general, applies to parallel pthreads programs.
-- 在现代、多核心的机器上，pthread是理想上适合并行编程，同时适用于通用的并行编程，适用于并行的pthread程序。
+- 在现代、多核心的机器上，pthread是理想上适合并行编程，同时不管怎样适用于通用的并行编程，适用于并行的pthread程序。
 - There are many considerations for designing parallel programs, such as:
 - 设计一个并行程序需要考虑许多，例如：
     - What type of parallel programming model to use?
@@ -373,9 +373,46 @@ Source: [fork vs thread](https://computing.llnl.gov/tutorials/pthreads/fork_vs_t
     - Program complexity
     - 程序复杂性
     - Programmer effort/costs/time
-    - 编程人员工作量/消耗/时间
+    - 编程人员工作量/费用/时间
     - ...
     - ……
 - Covering these topics is beyond the scope of this tutorial, however interested readers can obtain a quick overview in the [Introduction to Parallel Computing](https://computing.llnl.gov/tutorials/parallel_comp) tutorial.
 - 这些主题已经超出了本教程的范围，然而对这些感兴趣的读者可以从[并行计算简介](https://computing.llnl.gov/tutorials/parallel_comp)教程中获得简要概述。
+- In general though, in order for a program to take advantage of Pthreads, it must be able to be organized into discrete, independent tasks which can execute concurrently. For example, if routine1 and routine2 can be interchanged, interleaved and/or overlapped in real time, they are candidates for threading.
+- 但是一般来说，想让一个程序能利用Pthread的优势，它必须能够被组织成离散的独立的任务，这些任务能同时地执行。例如，例程1和例程2能被实时地交换、交叉或者重叠，那么它们是多线程的候选人。
+
+![concurrent](./tutorial-pthreads/concurrent.gif)
+
+- Programs having the following characteristics may be well suited for pthreads:
+- 拥有以下特征的程序可能很适合Pthread：
+    - Work that can be executed, or data that can be operated on, by multiple tasks simultaneously:
+    - 能够被多个任务同时地执行工作，或者操作数据：
+    - Block for potentially long I/O waits
+    - 因为潜在的常时间I/O等待而阻塞
+    - Use many CPU cycles in some places but not others
+    - 在某些地方使用了许多CPU周期但是其他地方则不是
+    - Must respond to asynchronous events
+    - 必须响应异步的事件
+    - Some work is more important than other work(priority interrupts)
+    - 某些工作比其他工作更重要（优先中断）
+- Several common models for threaded programs exist:
+- 存在一些常见的多线程程序模型：
+    - Manager/worker: a single thread, the manager assigns work to other threads, the workers. Typically, the manager handles all input and parcels out work to the other tasks. At least two forms of the manager/worker model are common: static worker pool and dynamic worker pool.
+    - 管理者/工人：一个单独的线程——管理者——分配工作任务给其他线程——工人们。通常，管理者处理所有输入并且把工作分配给其他任务。至少存在两种常用的管理者/工人模型：静态工人池和动态工人池。
+    - Pipeline: a task is broken into a series of suboperations, each of which is handled in series, but concurrently, by a different thread. An automobile assembly line best describes this model.
+    - 流水线：一个任务被分解成一系列子操作，每个子操作被不同的线程同时地按顺序地接管。汽车装配线能最好地描述这个模型。
+    - Peer: similar to the manager/worker model, but after the main thread creates other threads, it participates in the work.
+    - 对等：与管理者/工人模型相似，但是在主线程创建其他线程后，它自己参与进工作当中。
+
+#### Shared Memory Model:
+#### 共享内存模型：
+
+- All threads have access to the same global, shared memory
+- 所有线程有权访问同一个全局的共享的内存
+- Threads also have their own private data
+- 线程也有他们自己的私有数据
+- Programmers are responsible for synchronizing access(protecting) globally shared data.
+- 编程人员对同步访问（保护）全局的共享的数据负有责任。
+
+![Shared Memory Model](./tutorial-pthreads/shared_memory_model.gif)
 
