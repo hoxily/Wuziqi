@@ -435,7 +435,7 @@ Source: [fork vs thread](https://computing.llnl.gov/tutorials/pthreads/fork_vs_t
 - The implication to users of external library routines is that if you aren't 100% certain the routine is thread-safe, then you take your chances with problems that could arise.
 - 这暗示着那些使用外部库函数的用户，如果你不能100%确定函数是线程安全的，那么你得自行承担可能出现的问题的风险。
 - Recommendation: Be careful if your application uses libraries or other objects that don't explicitly guarantee thread-safeness. When in doubt, assume that they are not thread-safe until proven otherwise. This can be done by "serializing" the calls to the uncertain routine, etc.
-- 建议：如果你的应用程序使用的库或者其他对象没有明确地保证线程安全，那么你要小心了。当你不确定时，假定它们非线程安全直到证明它线程安全。通过“序列化”对不确定的函数的调用来解决这个问题。
+- 建议：如果你的应用程序使用的库或者其他对象没有明确地保证线程安全，那么你要小心了。当你不确定时，假定它们非线程安全直到证明它线程安全。通过对不确定的函数的调用进行“序列化”可以解决这个问题。
 
 #### Thread Limits:
 #### 线程限制：
