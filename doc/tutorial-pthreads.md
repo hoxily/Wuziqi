@@ -416,3 +416,102 @@ Source: [fork vs thread](https://computing.llnl.gov/tutorials/pthreads/fork_vs_t
 
 ![Shared Memory Model](./tutorial-pthreads/shared_memory_model.gif)
 
+#### Thread-safeness:
+#### 线程安全性：
+
+- Thread-safeness: in a nutshell, refers an application's ability to execute multiple threads simulaneously without "clobbering" shared data or creating "race" conditions.
+- 线程安全性：简而言之，指的就是应用程序的同时执行多个线程而不“痛打”共享数据或者产生“竞态”条件。
+- For example, suppose that your application creates several threads, each of which makes a call to the same library routine:
+- 举个例子，假设你的应用程序创建了许多线程，每个线程都调用了同一个库函数：
+    - This library routine accesses/modifies a global structure or location in memory.
+    - 该库函数访问/修改一个内存中的全局的结构或者位置。
+    - As each thread calls this routine it is possible that they may try to modify this global structure/memory location at the same time.
+    - 因为每个线程都调用该函数，所以有可能造成它们尝试同时修改这个全局的结构或者内存位置。
+    - If the routine does not employ some sort of synchronization constructs to prevent data corruption, then it is not thread-safe.
+    - 如果函数没有使用某种同步设计来避免数据损坏，那么它就不是线程安全的。
+
+![Thread-Unsafe](./tutorial-pthreads/thread_unsafe.gif)
+
+- The implication to users of external library routines is that if you aren't 100% certain the routine is thread-safe, then you take your chances with problems that could arise.
+- 这暗示着那些使用外部库函数的用户，如果你不能100%确定函数是线程安全的，那么你得自行承担可能出现的问题的风险。
+- Recommendation: Be careful if your application uses libraries or other objects that don't explicitly guarantee thread-safeness. When in doubt, assume that they are not thread-safe until proven otherwise. This can be done by "serializing" the calls to the uncertain routine, etc.
+- 建议：如果你的应用程序使用的库或者其他对象没有明确地保证线程安全，那么你要小心了。当你不确定时，假定它们非线程安全直到证明它线程安全。通过“序列化”对不确定的函数的调用来解决这个问题。
+
+#### Thread Limits:
+#### 线程限制：
+
+- Although the Pthreads API is an ANSI/IEEE standard, implementations can, and usually do, vary in ways not sepcified by the standard.
+- 尽管Pthread API是一种ANSI/IEEE标准，但是通常它的实现却是多种多样，因为标准中并没有指定实现。
+- Because of this, a program that runs fine on one platform, may fail or produce wrong results on another platform.
+- 正因为如此，所以一个程序在某一个平台上运行良好却有可能在另一个平台上失败或者产生错误的结果。
+- For example, the maximum number of threads permitted, and the default thread stack size are two important limits to consider when designing your program.
+- 例如，允许的最大线程数量以及默认的线程栈大小是你设计你的程序时需要考虑的两个重要限制因素。
+- Several thread limits are discussed in more detail later in this tutorial.
+- 本教程稍后会深入讨论许多线程限制。
+
+## The Pthreads API
+## Pthread API
+
+- The original Pthreads API was defined in the ANSI/IEEE POSIX 1003.1 - 1995 standard. The POSIX standard has continued to evolve and undergo revisions, including the Pthreads specification.
+- Pthread API最早在ANSI/IEEE POSIX 1003.1 - 1995标准里被定义。POSIX标准在持续发展并经历修订，包括其中的Pthread规范。
+- Copies of the standard can be purchased from IEEE or downloaded for free from other sites online.
+- 标准的副本可以从IEEE购买或者从其他在线网站免费下载得到。
+- The subroutines which comprise the Pthreads API can be informally grouped into four major groups:
+- 构成Pthread API的子函数可以被非正式地分成主要的四组：
+    1. Thread management: Routines that work directly on threads - creating, detaching, joining, etc. They also include functions to set/query thread attributes(joinable, scheduling etc.)
+    1. 线程管理：那些直接作用于线程的函数——创建、分离、连接等。它们还包含用于设置/查询属性（可连接性、调度等）的函数。
+    2. Mutexes: Routines that deal with synchronization, called a "mutex", which is an abbreviation for "mutual exclusion". Mutex functions provide for creating, destroying, locking and unlocking mutexes. These are supplemented by mutex attribute functions that set or modify attributes associated with mutexes.
+    2. 互斥体：处理同步的函数，被叫作“mutex”，这个单词是“mutual exclusion”的缩写。互斥体函数提供了创建、销毁、加锁、解锁互斥体的功能。辅以互斥体属性函数，我们可以设置或者修改互斥体所关联的属性。
+    3. Condition variables: Routines that address communications between threads that share a mutex. Based upon programmer specified conditions. This group includes functions to create, destroy, wait and signal based upon specified variable values. Functions to set/query condition variable attributes are also included.
+    3. 条件变量：涉及共享同一个互斥体的线程之间沟通的函数。根据程序员指定的变量。这组API包括依据指定变量值创建、销毁、等待以及发信号的函数。设置/查询条件变量的属性的函数同样包括在内。
+    4. Synchronization: Routines that manage read/write locks and barriers.
+    4. 同步：管理读/写锁和屏障的函数。
+- Naming conventions: All identifiers in the threads library begin with ** pthread_ **. Some example are shown below.
+- 命名规范：线程库里的所有标识符都以 ** pthread_ ** 开头。下面展示了一些例子。
+
+<table>
+    <thead>
+        <tr>
+            <th>函数名前缀</th>
+            <th>功能组</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>pthread_</td>
+            <td>关于线程自身和其他杂项的子函数</td>
+        </tr>
+        <tr>
+            <td>pthread_attr_</td>
+            <td>线程属性对象</td>
+        </tr>
+        <tr>
+            <td>pthread_mutex_</td>
+            <td>互斥体</td>
+        </tr>
+        <tr>
+            <td>pthread_mutexattr_</td>
+            <td>互斥体属性对象</td>
+        </tr>
+        <tr>
+            <td>pthread_cond_</td>
+            <td>条件变量</td>
+        </tr>
+        <tr>
+            <td>pthread_condattr_</td>
+            <td>条件变量属性对象</td>
+        </tr>
+        <tr>
+            <td>pthread_key_</td>
+            <td>线程专有数据键</td>
+        </tr>
+        <tr>
+            <td>pthread_rwlock_</td>
+            <td>读/写锁</td>
+        </tr>
+        <tr>
+            <td>pthread_barrier_</td>
+            <td>同步屏障</td>
+        </tr>
+    </tbody>
+</table>
