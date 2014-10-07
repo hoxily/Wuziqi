@@ -515,3 +515,193 @@ Source: [fork vs thread](https://computing.llnl.gov/tutorials/pthreads/fork_vs_t
         </tr>
     </tbody>
 </table>
+
+- The concept of opaque objects pervades the design of the API. The basic calls work to create or modify opaque objects - the opaque objects can be modified by calls to attribute functions, which deal with opaque attributes.
+- API的设计中弥漫着不透明对象的概念。基本调用作用于创建或者修改不透明对象——该不透明对象能通过调用属性函数进行修改，这些函数处理不透明的属性。
+- The Pthreads API contains around 100 subroutines. This tutorial will focus on a subset of these - specifically, those which are most likely to be immediately useful to the beginning Pthreads programmer.
+- Pthread API包含大约100个子函数。本教程将专注于其中一个子集——特别是那些很可能立马就能被Pthread编程初学者用到的。
+- For portability, the pthread.h header file should be included in each source file using the Pthreads library.
+- 为了可移植性，pthread.h头文件需要被每个使用Pthread库的源码文件包含。
+- The current POSIX standard is defined only for the C language. Fortran programmers can use wrappers around C function calls. Some Fortran compilers may provide a Fortran pthreads API.
+- 当前POSIX标准仅对C语言作了定义。Fortran程序员可以使用C函数调用的包装。某些Fortran编译器提供了Fortran Pthread API。
+- A number of excellent books about Pthreads are available. Several of these are listed in the [References](https://computing.llnl.gov/tutorials/pthreads/#References) section of this tutorial.
+- 大量的优秀关于Pthread的书籍可用。其中的许多列于本教程的[参考文献](https://computing.llnl.gov/tutorials/pthreads/#References)一节。
+
+## Compiling Threaded Programs
+## 编译多线程程序
+
+- Several examples of compile commands used for pthreads codes are listed in the table below.
+- 下表列举了一些用于编译Pthread代码的命令例子。
+
+<table>
+    <thead>
+        <tr>
+            <th>编译器/平台</th>
+            <th>编译器命令</th>
+            <th>描述</th>
+        </tr>
+    </thead>
+        <tr>
+            <td rowspan="2">INTEL Linux</td>
+            <td>icc -pthread</td>
+            <td>C</td>
+        </tr>
+        <tr>
+            <td>icpc -pthread</td>
+            <td>C++</td>
+        </tr>
+        <tr>
+            <td rowspan="2">PGI Linux</td>
+            <td>pgcc -lpthread</td>
+            <td>C</td>
+        </tr>
+        <tr>
+            <td>pgCC -lpthread</td>
+            <td>C++</td>
+        </tr>
+        <tr>
+            <td rowspan="2">GNU Linux, Blue Gene</td>
+            <td>gcc -pthread</td>
+            <td>GNU C</td>
+        </tr>
+        <tr>
+            <td>g++ -pthread</td>
+            <td>GNU C++</td>
+        </tr>
+        <tr>
+            <td rowspan="2">IBM Blue Gene</td>
+            <td>bgxlc_r / bgcc_r</td>
+            <td>C(ANSI / non-ANSI)</td>
+        </tr>
+        <tr>
+            <td>bgxlC_r, bgxlc++_r</td>
+            <td>C++</td>
+        </tr>
+    <tbody>
+    </tbody>
+</table>
+
+## Thread Management
+## 线程管理
+
+### Creating and Terminating Threads
+### 创建和终止线程
+
+#### Routines:
+#### 函数：
+
+[pthread_create](https://computing.llnl.gov/tutorials/pthreads/man/pthread_create.txt) (thread,attr,start_routine,arg)
+
+[pthread_exit](https://computing.llnl.gov/tutorials/pthreads/man/pthread_exit.txt) (status)
+
+[pthread_cancel](https://computing.llnl.gov/tutorials/pthreads/man/pthread_cancel.txt) (thread)
+
+[pthread_attr_init](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_init.txt) (attr)
+
+[pthread_attr_destroy](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_destroy.txt) (attr)
+
+#### Creating Threads:
+#### 创建线程：
+
+- Initially, your main() program comprises a single, default thread. All other threads must be explicitly created by the programmer.
+- 一开始，你的main()程序包含一个单独的默认的线程。所有其他线程都必须由程序员明确地创建。
+- pthread_create creates a new thread and makes it executable. This routine can be called any number of times from anywhere within your code.
+- pthread_create创建一个线程并使它可执行。该函数可以在你代码中的任何地方被市用任意多次。
+- pthread_create arguments:
+- pthread_create 参数：
+    - thread: An opaque, unique identifier for the new thread returned by the subroutine.
+    - thread：一个不透明的独一无二的标识符，用于标识该子函数返回的新线程。
+    - attr: An opaque attribute object that may be used to set thread attributes. You can specify a thread attributes object, or NULL for the default values.
+    - attr：一个不透明的属性对象，可以用于设置线程属性。你可以指定一个线程属性对象，或者用NULL保持默认值。
+    - start_routine: the C routine that the thread will execute once it is created.
+    - start_routine：一个c函数，一旦当线程被创建会立即执行这个函数。
+    - arg: A single argument that may be passed to start_routine. It must be passed by reference as a pointer cast of type void. NULL may be used if no argument is to be passed.
+    - arg：一个单独的参数，可以被传递给start_routine函数。它必须以引用方式，以一个void*类型的指针进行传递。如果没有需要传递的参数，那么可以用NULL。
+- The maximum number of threads that may be created by a process is implementation dependent. Programs that attempt to exceed the limit can fail or produce wrong results.
+- 一个进程能够创建的线程的最大数量是依赖于实现的。程序如果尝试超出这个限制那么有可能失败或者产生错误的结果。
+- Querying and setting your implementation's thread limit - Linux example shown. Demonstrates querying the default (soft) limits and then setting the maximum number of processes (including threads) to the hard limit. Then verifying that the limit has been overridden.
+- 查询和设置你的实现的线程限制——展示了Linux下的例子。演示里查询默认（软）限制然后设置进程（包括线程）的最大数为硬极限。再然后验证该限制被成功覆写。
+
+<table>
+    <thead>
+        <tr>
+            <th>bash/ksh/sh</th>
+            <th>tcsh/csh</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><pre>$ ulimit -a
+core file size          (blocks, -c) 16
+data seg size           (kbytes, -d) unlimited
+scheduling priority             (-e) 0
+file size               (blocks, -f) unlimited
+pending signals                 (-i) 255956
+max locked memory       (kbytes, -l) 64
+max memory size         (kbytes, -m) unlimited
+open files                      (-n) 1024
+pipe size            (512 bytes, -p) 8
+POSIX message queues     (bytes, -q) 819200
+real-time priority              (-r) 0
+stack size              (kbytes, -s) unlimited
+cpu time               (seconds, -t) unlimited
+max user processes              (-u) 1024
+virtual memory          (kbytes, -v) unlimited
+file locks                      (-x) unlimited
+
+$ ulimit -Hu
+7168
+
+$ ulimit -u 7168
+
+$ ulimit -a
+core file size          (blocks, -c) 16
+data seg size           (kbytes, -d) unlimited
+scheduling priority             (-e) 0
+file size               (blocks, -f) unlimited
+pending signals                 (-i) 255956
+max locked memory       (kbytes, -l) 64
+max memory size         (kbytes, -m) unlimited
+open files                      (-n) 1024
+pipe size            (512 bytes, -p) 8
+POSIX message queues     (bytes, -q) 819200
+real-time priority              (-r) 0
+stack size              (kbytes, -s) unlimited
+cpu time               (seconds, -t) unlimited
+max user processes              (-u) 7168
+virtual memory          (kbytes, -v) unlimited
+file locks                      (-x) unlimited</pre></td>
+            <td><pre>% limit 
+cputime      unlimited
+filesize     unlimited
+datasize     unlimited
+stacksize    unlimited
+coredumpsize 16 kbytes
+memoryuse    unlimited
+vmemoryuse   unlimited
+descriptors  1024 
+memorylocked 64 kbytes
+maxproc      1024
+
+% limit maxproc unlimited
+
+% limit
+cputime      unlimited
+filesize     unlimited
+datasize     unlimited
+stacksize    unlimited
+coredumpsize 16 kbytes
+memoryuse    unlimited
+vmemoryuse   unlimited
+descriptors  1024 
+memorylocked 64 kbytes
+maxproc      7168</pre></td>
+        </tr>
+    </tbody>
+</table>
+
+- Once created, threads are peers, and may create other threads. There is no implied hierarchy or dependency between threads.
+- 一旦创建，线程间就是平辈关系，它们可以创建其他线程。线程之间不存在隐含的层级或者依赖。
+
+![Peer Threads](./tutorial-pthreads/peer_threads.gif)
+
