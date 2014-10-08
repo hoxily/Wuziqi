@@ -705,3 +705,298 @@ maxproc      7168</pre></td>
 
 ![Peer Threads](./tutorial-pthreads/peer_threads.gif)
 
+#### Thread Attributes:
+#### 线程属性：
+
+- By default, a thread is created with certain attributes. Some of these attributes can be changed by the programmer via the thread attribute object.
+- 默认情况下，一个线程以确定的属性创建。程序员可以通过线程属性对象修改其中的某些属性。
+- pthread_attr_init and pthread_attr_destroy are used to initialize/destroy the thread attribute object.
+- pthread_attr_init 和 pthread_attr_destroy用于初始化/销毁线程属性对象。
+- Other routines are then used to query/set specific attributes in the thread attribute object. Attributes include:
+- 其他一些函数用于查询/设置线程属性对象的特定属性。属性包括：
+    - Detached or joinable state
+    - 分离和可连接状态
+    - Scheduling inheritance
+    - 调度继承
+    - Scheduling policy
+    - 调度策略
+    - Scheduling parameters
+    - 调度参数
+    - Scheduling contention scope
+    - 调度竞争范围
+    - Stack size
+    - 栈大小
+    - Stack address
+    - 栈地址
+    - Stack guard (overflow) size
+    - 栈保护（溢出）大小
+- Some of these attributes will be discussed later.
+- 其中的一些属性将会在之后被讨论。
+
+#### Thread Binding and Scheduling:
+#### 线程绑定和调度：
+
+Question: After a thread has been created, how do you know a)when it will be scheduled to run by the operating system, and b)which processor/core it will run on?
+
+问题：线程创建之后，你如何知道：1.它什么时候被操作系统调度执行；2.它会在哪个处理器/核心上运行？
+
+Answer: Unless you are using the Pthreads scheduling mechanism, it is up to the implementation and/or operating system to decide where and when threads will execute.  Robust programs should not depend upon threads executing in a specific order or on a specific processor/core.
+
+答案：除非你使用Pthread调度机制，否则它由Pthread实现或者操作系统来决定何处以及何时执行线程。强健的程序应该不依赖于线程以特定顺序执行或者在特定处理器/核心上执行。
+
+- The Pthreads API provides several routines that may be used to specify how threads are scheduled for execution. For example, threads can be scheduled to run FIFO (first-in first-out), RR (round-robin) or OTHER (operating system determines). It also provides the ability to set a thread's scheduling priority value.
+- Pthread API提供了许多函数用于指定线程如何调度执行。例如，线程可以以FIFO（先进先出）、RR（循环赛）以及其他（操作系统决定）方式运行。API还提供了设置线程调度优先级值的能力。
+- These topics are not covered here, however a good overview of "how things work" under Linux can be found in the sched_setscheduler man page.
+- 这些主题在本教程不会涉及，但是可以从sched_setscheduler man手册里获得它们在Linux下的“工作原理”。
+- The Pthreads API does not provide routines for binding threads to specific cpus/cores. However, local implementations may include this functionality - such as providing the non-standard pthread_setaffinity_np routine. Note that "_np" in the name stands for "non-portable".
+- Pthread API未提供函用于绑定线程到指定CPU/核心的函数。但是本地实现有可能包含这个功能——例如提供非标准的pthread_setaffinity_np函数。注意函数名中的“_np”代表的是“不可移植的”(non-portable)。
+- Also, the local operating system may provide a way to do this. For example, Linux provides the sched_setaffinity routine.
+- 另外，本地操作系统可能提供了这样做的方法。例如Linux提供了sched_setaffinity函数。
+
+#### Terminating Threads & pthread_exit():
+#### 终止线程与pthread_exit()：
+
+- There are several ways in which a thread may be terminated:
+- 存在多种方法来终止一个线程：
+    - The thread returns normally from its starting routine. It's work is done.
+    - 线程从它的开始函数正常返回。它的工作完成了。
+    - The thread makes a call to the pthread_exit subroutine - whether its work is done or not.
+    - 线程调用pthread_exit子函数——无论它的工作是否完成。
+    - The thread is canceled by another thread via the pthread_cancel routine.
+    - 线程被其他线程通过pthread_cancel函数取消。
+    - The entire process is terminated due to making a call to either the exec() or exit()
+    - 整个进程因为调用exec()或者exit()而终止。
+    - If main() finishes first, without calling pthread_exit explicitly itself
+    - 如果main()先结束，且没有在结束前明确地调用pthread_exit。
+- The pthread_exit() routine allows the programmer to specify an optional termination status parameter. This optional parameter is typically returned to threads "joining" the terminated thread (covered later).
+- pthread_exit()函数允许程序员指定一个可选的终止状态参数。该可选的参数一般上返回给“连接”终止线程的线程（稍后涉及）。
+- In subroutines that execute to completion normally, you can often dispense with calling pthread_exit() - unless, of course, you want to pass the optional status code back.
+- 在正常执行结束的子函数里，你通常可能免去调用pthread_exit()——当然，除非你想要传回可选的状态码。
+- Cleanup: the pthread_exit() routine does not close files; any files opened inside the thread will remain open after the thread is terminated.
+- 清扫工作：pthread_exit()函数不会关闭文件；任何在线程里打开的文件会在线程结束后保持打开状态。
+- Discussion on calling pthread_exit() from main():
+- 讨论在main函数中调用pthread_exit：
+    - There is a definite problem if main() finishes before the threads it spawned if you don't call pthread_exit() explicitly. All of the threads it created will terminate because main() is done and no longer exists to support the threads.
+    - 如果main函数在它创建的线程结束前先结束，并且没有明确调用pthread_exit函数，那么这里肯定存在问题。它创建的所有线程都将会终止，因为main函数完成然后不再存于以维持这些线程。
+    - By having main() explicitly call pthread_exit() as the last thing it does, main() will block and be kept alive to support the threads it created until they are done.
+    - 通过使main函数明确地调用pthread_exit函数作为它最后做的一件事，main函数将会阻塞并保持存活，以维持它创建的那些线程直至它们完成。
+
+### Example: Pthread Creation and Termination
+### 例子：Pthread创建和终止
+
+- This simple example code creates 5 threads with the pthread_create() routine. Each thread prints a "Hello World!" message, and then terminates with a call to pthread_exit().
+- 这个简单的示例代码用pthread_create函数创建了5个线程。每个线程打印一条“Hello World!”消息，然后以调用pthread_exit函数结束。
+
+    #include <pthread.h>
+    #include <stdio.h>
+    #define NUM_THREADS     5
+
+    void *PrintHello(void *threadid)
+    {
+        long tid;
+        tid = (long)threadid;
+        printf("Hello World! It's me, thread #%ld!\n", tid);
+        pthread_exit(NULL);
+    }
+
+    int main (int argc, char *argv[])
+    {
+        pthread_t threads[NUM_THREADS];
+        int rc;
+        long t;
+        for(t=0; t<NUM_THREADS; t++){
+            printf("In main: creating thread %ld\n", t);
+            rc = pthread_create(&threads[t], NULL, PrintHello, (void *)t);
+            if (rc){
+                printf("ERROR; return code from pthread_create() is %d\n", rc);
+                exit(-1);
+            }
+        }
+
+        /* Last thing that main() should do */
+        pthread_exit(NULL);
+    }
+
+## Thread Management
+## 线程管理
+
+### Passing Arguments to Threads
+### 传递参数给线程
+
+- The pthread_create() routine permits the programmer to pass one argument to the thread start routine. For cases where multiple arguments must be passed, this limitation is easily overcome by creating a structure which contains all of the arguments, and then passing a pointer to that structure in the pthread_create() routine.
+- pthread_create函数允许程序员传递1个参数给线程的开始函数。对于需要传递多个参数的情况，这个限制是很容易克服的，只需创建一个包括所有参数的结构然后传递该结构的指针给pthread_create函数即可。
+- All arguments must be passed by reference and cast to (void *).
+- 所有的参数必须以引用方式传递，并且转换类型至(void*)。
+
+Question: How can you safely pass data to newly created threads, given their non-deterministic start-up and scheduling?
+
+问题：你如何安全地传递数据到新创建的线程，考虑到它们不确定的启动与调度？
+
+Answer: Make sure that all passed data is thread safe - that it can not be changed by other threads.  The three examples that follow demonstrate what not and what to do.
+
+答案：确保所有创建的数据是线程安全的——即传递的数据无法被其他线程更改。下面的三个例子演示了什么不该做什么该做。
+
+#### Example 1 - Thread Argument Passing
+#### 例子1——线程参数传递
+
+This code fragment demonstrates how to pass a simple integer to each thread. The calling thread uses a unique data structure for each thread, insuring that each thread's argument remains intact throughout the program.
+
+这个代码片段演示了如何传递一个简单的整数给每一个线程。调用线程针对每个线程使用了一个独一无二的数据结构，以确保每个线程的参数在整个程序里保持原封不动。
+
+    #include <pthread.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+    #define NUM_THREADS 8
+
+    char *messages[NUM_THREADS];
+
+    void *PrintHello(void *threadid)
+    {
+        int *id_ptr, taskid;
+
+        sleep(1);
+        id_ptr = (int *) threadid;
+        taskid = *id_ptr;
+        printf("Thread %d: %s\n", taskid, messages[taskid]);
+        pthread_exit(NULL);
+    }
+
+    int main(int argc, char *argv[])
+    {
+        pthread_t threads[NUM_THREADS];
+        int *taskids[NUM_THREADS];
+        int rc, t;
+
+        messages[0] = "English: Hello World!";
+        messages[1] = "French: Bonjour, le monde!";
+        messages[2] = "Spanish: Hola al mundo";
+        messages[3] = "Klingon: Nuq neH!";
+        messages[4] = "German: Guten Tag, Welt!"; 
+        messages[5] = "Russian: Zdravstvytye, mir!";
+        messages[6] = "Japan: Sekai e konnichiwa!";
+        messages[7] = "Latin: Orbis, te saluto!";
+
+        for(t=0;t<NUM_THREADS;t++) {
+            taskids[t] = (int *) malloc(sizeof(int));
+            *taskids[t] = t;
+            printf("Creating thread %d\n", t);
+            rc = pthread_create(&threads[t], NULL, PrintHello, (void *) taskids[t]);
+            if (rc) {
+                printf("ERROR; return code from pthread_create() is %d\n", rc);
+                exit(-1);
+            }
+        }
+
+        pthread_exit(NULL);
+    }
+
+#### Example 2 - Thread Argument Passing
+#### 例子2——线程参数传递
+
+This example shows how to setup/pass multiple arguments via a structure. Each thread receives a unique instance of the structure.
+
+这个例子展示了如何通过结构设置/传递多个参数。每个线程接收一个独一无二的结构实例。
+
+    #include <pthread.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+    #define NUM_THREADS 8
+
+    char *messages[NUM_THREADS];
+
+    struct thread_data
+    {
+        int thread_id;
+        int  sum;
+        char *message;
+    };
+
+    struct thread_data thread_data_array[NUM_THREADS];
+
+    void *PrintHello(void *threadarg)
+    {
+        int taskid, sum;
+        char *hello_msg;
+        struct thread_data *my_data;
+
+        sleep(1);
+        my_data = (struct thread_data *) threadarg;
+        taskid = my_data->thread_id;
+        sum = my_data->sum;
+        hello_msg = my_data->message;
+        printf("Thread %d: %s  Sum=%d\n", taskid, hello_msg, sum);
+        pthread_exit(NULL);
+    }
+
+    int main(int argc, char *argv[])
+    {
+        pthread_t threads[NUM_THREADS];
+        int *taskids[NUM_THREADS];
+        int rc, t, sum;
+
+        sum=0;
+        messages[0] = "English: Hello World!";
+        messages[1] = "French: Bonjour, le monde!";
+        messages[2] = "Spanish: Hola al mundo";
+        messages[3] = "Klingon: Nuq neH!";
+        messages[4] = "German: Guten Tag, Welt!"; 
+        messages[5] = "Russian: Zdravstvytye, mir!";
+        messages[6] = "Japan: Sekai e konnichiwa!";
+        messages[7] = "Latin: Orbis, te saluto!";
+
+        for(t=0;t<NUM_THREADS;t++) {
+            sum = sum + t;
+            thread_data_array[t].thread_id = t;
+            thread_data_array[t].sum = sum;
+            thread_data_array[t].message = messages[t];
+            printf("Creating thread %d\n", t);
+            rc = pthread_create(&threads[t], NULL, PrintHello, (void *) 
+                &thread_data_array[t]);
+            if (rc) {
+                printf("ERROR; return code from pthread_create() is %d\n", rc);
+                exit(-1);
+            }
+        }
+        pthread_exit(NULL);
+    }
+
+#### Example 3 - Thread Argument Passing (Incorrect)
+#### 例子3——线程参数传递（不正确）
+
+This example performs argument passing incorrectly. It passes the address of variable t, which is shared memory space and visible to all threads. As the loop iterates, the value of this memory location changes, possibly before the created threads can access it.
+
+这个例子不正确地执行了参数传递。它传递了变量t的地址，该地址是共享内存空间并且对所有线程可见。随着循环的迭代，该内存地址的值不断变更，很有可能在创建的线程访问它之前发生变更。
+
+    #include <pthread.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+    #define NUM_THREADS     8
+
+    void *PrintHello(void *threadid)
+    {
+        long taskid;
+        sleep(1);
+        taskid = *(long *)threadid;
+        printf("Hello from thread %ld\n", taskid);
+        pthread_exit(NULL);
+    }
+
+    int main(int argc, char *argv[])
+    {
+        pthread_t threads[NUM_THREADS];
+        int rc;
+        long t;
+
+        for(t=0;t<NUM_THREADS;t++) {
+            printf("Creating thread %ld\n", t);
+            rc = pthread_create(&threads[t], NULL, PrintHello, (void *) &t);
+            if (rc) {
+                printf("ERROR; return code from pthread_create() is %d\n", rc);
+                exit(-1);
+            }
+        }
+
+        pthread_exit(NULL);
+    }
+
+
