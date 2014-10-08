@@ -787,6 +787,7 @@ Answer: Unless you are using the Pthreads scheduling mechanism, it is up to the 
 - This simple example code creates 5 threads with the pthread_create() routine. Each thread prints a "Hello World!" message, and then terminates with a call to pthread_exit().
 - 这个简单的示例代码用pthread_create函数创建了5个线程。每个线程打印一条“Hello World!”消息，然后以调用pthread_exit函数结束。
 
+---
 
     #include <pthread.h>
     #include <stdio.h>
