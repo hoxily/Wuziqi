@@ -1,5 +1,5 @@
 all: fork.out pthread_create.out hello.out hello_arg1.out hello_arg2.out
-all: hello_arg3.out
+all: hello_arg3.out join.out
 fork.out: fork.c
 	gcc -o fork.out fork.c
 pthread_create.out: pthread_create.c
@@ -12,3 +12,5 @@ hello_arg2.out: hello_arg2.c
 	gcc -o hello_arg2.out -lpthread hello_arg2.c
 hello_arg3.out: hello_arg3.c
 	gcc -o hello_arg3.out -lpthread hello_arg3.c
+join.out: join.c
+	gcc -o join.out -lpthread -lm join.c

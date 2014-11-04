@@ -1001,4 +1001,135 @@ This example performs argument passing incorrectly. It passes the address of var
         pthread_exit(NULL);
     }
 
+## Thread Management
+## 线程管理
+
+### Joining and Detaching Threads
+### 连接和分离线程
+
+#### Routines:
+#### 函数：
+
+    [pthread_join](https://computing.llnl.gov/tutorials/pthreads/man/pthread_join.txt) (threadid,status)
+    [pthread_detach](https://computing.llnl.gov/tutorials/pthreads/man/pthread_detach.txt) (threadid)
+    [pthread_attr_setdetachstate](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_setdetachstate.txt) (attr,detachstate)
+    [pthread_attr_getdetachstate](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_getdetachstate.txt) (attr,detachstate) 
+
+#### Joining:
+#### 连接：
+
+- "Joining" is one way to accomplish synchronization between threads. For example:
+- “连接”是一种完成线程之间同步的方式。例如：
+
+![Joining](./tutorial-pthreads/joining.gif)
+
+- The pthread_join() subroutine blocks the calling thread until the specified threadid thread terminates.
+- pthread_join子函数会阻塞调用线程直至指定id的线程终止。
+- The programmer is able to obtain the target thread's termination return status if it was specified in the target thread's call to pthread_exit().
+- 程序员能够获取目标线程的终止返回状态，如果目标线程在调用pthread_exit时指定了返回状态。
+- A joining thread can match one pthread_join() call. It is a logical error to attempt multiple joins on the same thread.
+- 一个连接线程能够匹配一个pthread_join调用。尝试在同一个线程上进行多次连接是一个逻辑错误。
+- Two other synchronization methods, mutexes and condition variables, will be discussed later.
+- 另外两种同步方法——互斥体与条件变量——将会在稍后讨论。
+
+#### Joinable or Not?
+#### 可连接还是不可连接？
+
+- When a thread is created, one of its attributes defines whether it is joinable or detached. Only threads that are created as joinable can be joined. If a thread is created as detached, it can never be joined.
+- 当一个线程被创建时，它的属性中的某一项定义了它是可连接还是已分离。只有那些创建时设定为可连接的线程才能被连接。如果一个线程创建时设定为已分离，那么它永远不可能被连接。
+- The final draft of the POSIX standard specifies that threads should be created as joinable.
+- POSIX标准的最终草稿规定，线程被创建时应该设定为可连接。
+- To explicitly create a thread as joinable or detached, the attr argument in the pthread_create() routine is used. The typical 4 step process is:
+- 为了明确地创建一个可连接或者已分离的线程，需要用到pthread_create函数的attr参数。典型的4步为：
+    1. Declare a pthread attribute variable of the pthread_attr_t data type
+    1. 声明一个数据类型为pthread_attr_t的线程属性变量
+    2. Initialize the attribute variable with pthread_attr_init()
+    2. 用pthread_attr_init函数来初始化这个属性变量
+    3. Set the attribute detached status with pthread_attr_setdetachstate()
+    3. 用pthread_attr_setdetachstate函数设置属性的分离状态
+    4. When done, free library resources used by the attribute with pthread_attr_destroy()
+    4. 使用完毕时，用pthread_attr_destroy函数释放属性使用的库资源
+
+#### Detaching:
+#### 分离：
+
+- The pthread_detach() routine can be used to explicitly detach a thread even though it was created as joinable.
+- pthread_detach函数可以被用来明确地分离一个即使创建时设定为可连接的线程。
+- There is no converse routine.
+- 不存在反向的函数。
+
+#### Recommendations:
+#### 建议：
+
+- If a thread requires joining, consider explicitly creating it as joinable. This provides portability as not all implementations may create threads as joinable by default.
+- 如果一个线程需要连接，考虑明确地创建成可连接的。这样子提供了可移植性，因为不是所有实现都默认创建可连接的线程。
+- If you know in advance that a thread will never need to join with another thread, consider creating it in a detached state. Some system resources may be able to be freed.
+- 如果你预先知道一个线程将永远不会需要与其他线程连接，考虑以分离状态创建它。某些系统资源就可能被释放。
+
+### Example: Pthread Joining
+### 例子：Pthread连接
+
+#### Example Code - Pthread Joining
+#### 示例代码——Pthread连接
+
+This example demonstrates how to "wait" for thread completions by using the Pthread join routine. Since some implementations of Pthreads may not create threads in a joinable state, the threads in this example are explicitly created in a joinable state so that they can be joined later.
+
+这个例子展示了如何使用Pthread的join函数来“等待”线程完成。由于某些Pthread实现可能不是以可连接状态创建线程，故本例子里的线程明确地以可连接状态创建，这样一来之后它们就能被连接。
+
+    #include <pthread.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <math.h>
+    #define NUM_THREADS 4
+
+    void *BusyWork(void *t)
+    {
+        int i;
+        long tid;
+        double result=0.0;
+        tid = (long)t;
+        printf("Thread %ld starting...\n",tid);
+        for (i=0; i<1000000; i++)
+        {
+            result = result + sin(i) * tan(i);
+        }
+        printf("Thread %ld done. Result = %e\n",tid, result);
+        pthread_exit((void*) t);
+    }
+
+    int main (int argc, char *argv[])
+    {
+        pthread_t thread[NUM_THREADS];
+        pthread_attr_t attr;
+        int rc;
+        long t;
+        void *status;
+
+        /* Initialize and set thread detached attribute */
+        pthread_attr_init(&attr);
+        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+        for(t=0; t<NUM_THREADS; t++) {
+            printf("Main: creating thread %ld\n", t);
+            rc = pthread_create(&thread[t], &attr, BusyWork, (void *)t); 
+            if (rc) {
+                printf("ERROR; return code from pthread_create() is %d\n", rc);
+                exit(-1);
+            }
+        }
+
+        /* Free attribute and wait for the other threads */
+        pthread_attr_destroy(&attr);
+        for(t=0; t<NUM_THREADS; t++) {
+            rc = pthread_join(thread[t], &status);
+            if (rc) {
+                printf("ERROR; return code from pthread_join() is %d\n", rc);
+                exit(-1);
+            }
+            printf("Main: completed join with thread %ld having a status of %ld\n",t,(long)status);
+        }
+
+        printf("Main: program completed. Exiting.\n");
+        pthread_exit(NULL);
+    }
 
