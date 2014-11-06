@@ -1133,3 +1133,217 @@ This example demonstrates how to "wait" for thread completions by using the Pthr
         pthread_exit(NULL);
     }
 
+## Thread Management
+## 线程管理
+
+### Stack Management
+### 栈管理
+
+#### Routines:
+#### 函数：
+
+pthread_attr_getstacksize (attr, stacksize)
+
+pthread_attr_setstacksize (attr, stacksize)
+
+pthread_attr_getstackaddr (attr, stackaddr)
+
+pthread_attr_setstackaddr (attr, stackaddr) 
+
+#### Preventing Stack Problems:
+#### 避免栈问题：
+
+- The POSIX standard does not dictate the size of a thread's stack. This is implementation dependent and varies.
+- POSIX标准没有指示一个线程的栈的大小。这依赖于实现，因而可变。
+- Exceeding the default stack limit is often very easy to do, with the usual results: program termination and/or corrupted data.
+- 超出默认的栈界限通常很容易就办到了，它的通常结果是程序终止或者损坏的数据。
+- Safe and portable programs do not depend upon the default stack limit, but instead, explicitly allocate enough stack for each thread by using the pthread_attr_setstacksize routine.
+- 安全并且可移植的程序不依赖于默认的栈界限，取而代之的是使用pthread_attr_setstacksize函数明确地为每个线程分配足够的栈空间。
+- The pthread_attr_getstackaddr and pthread_attr_setstackaddr routines can be used by applications in an environment where the stack for a thread must be placed in some particular region of memory.
+- 当应用的环境要求一个线程的栈必须位于某个特定内存范围时，应用可以使用pthread_attr_getstackaddr和pthread_attr_setstackaddr函数。
+
+#### Some Practical Examples at LC:
+#### 在LC上的一些实用例子：
+
+- Default thread stack size varies greatly. The maximum size that can be obtained also varies greatly, and may depend upon the number of threads per node.
+- 默认的线程栈大小差异巨大。可以获取的最大大小同样差异巨大，而且有可以依赖于每个节点上的线程数。
+- Both past and present architectures are shown to demonstrate the wide variation in default thread stack size.
+- 下表中包含过去和现在的架构被用来展示默认线程栈大小的巨大差异。
+
+<table>
+    <thead>
+        <tr>
+            <th>节点架构</th>
+            <th>CPU数量</th>
+            <th>内存（GB）</th>
+            <th>默认大小（bytes）</th>
+        </tr>
+    </thead>
+        <tr>
+            <td>Intel Xeon E5-2670</td>
+            <td>16</td>
+            <td>32</td>
+            <td>2,097,152</td>
+        </tr>
+        <tr>
+            <td>Intel Xeon 5660</td>
+            <td>12</td>
+            <td>24</td>
+            <td>2,097,152</td>
+        </tr>
+        <tr>
+            <td>AMD Opteron</td>
+            <td>8</td>
+            <td>16<td>
+            <td>2,097,152</td>
+        </tr>
+        <tr>
+            <td>Intel IA64</td>
+            <td>4</td>
+            <td>8</td>
+            <td>33,554,432</td>
+        </tr>
+        <tr>
+            <td>Intel IA32</td>
+            <td>2</td>
+            <td>4</td>
+            <td>2,097,152</td>
+        </tr>
+        <tr>
+            <td>IBM Power5</td>
+            <td>8</td>
+            <td>32</td>
+            <td>196,608</td>
+        </tr>
+        <tr>
+            <td>IBM Power4</td>
+            <td>8</td>
+            <td>16</td>
+            <td>196,608</td>
+        </tr>
+        <tr>
+            <td>IBM Power3</td>
+            <td>16</td>
+            <td>16</td>
+            <td>98,304</td>
+        </tr>
+    <tbody>
+    </tbody>
+</table>
+
+### Example: Stack Management
+### 例子：栈管理
+
+#### Example Code - Stack Management
+#### 示例代码——栈管理
+
+This example demonstrates how to query and set a thread's stack size.
+
+这个例子展示了如何查询和设置一个线程的栈大小。
+
+    #include <pthread.h>
+    #include <stdio.h>
+    #define NTHREADS 4
+    #define N 1000
+    #define MEGEXTRA 1000000
+
+    pthread_attr_t attr;
+
+    void *dowork(void *threadid)
+    {
+        double A[N][N];
+        int i,j;
+        long tid;
+        size_t mystacksize;
+
+        tid = (long)threadid;
+        pthread_attr_getstacksize (&attr, &mystacksize);
+        printf("Thread %ld: stack size = %li bytes \n", tid, mystacksize);
+        for (i=0; i<N; i++)
+            for (j=0; j<N; j++)
+                A[i][j] = ((i*j)/3.452) + (N-i);
+        pthread_exit(NULL);
+    }
+
+    int main(int argc, char *argv[])
+    {
+        pthread_t threads[NTHREADS];
+        size_t stacksize;
+        int rc;
+        long t;
+
+        pthread_attr_init(&attr);
+        pthread_attr_getstacksize (&attr, &stacksize);
+        printf("Default stack size = %li\n", stacksize);
+        stacksize = sizeof(double)*N*N+MEGEXTRA;
+        printf("Amount of stack needed per thread = %li\n",stacksize);
+        pthread_attr_setstacksize (&attr, stacksize);
+        printf("Creating threads with stack size = %li bytes\n",stacksize);
+        for(t=0; t<NTHREADS; t++){
+            rc = pthread_create(&threads[t], &attr, dowork, (void *)t);
+            if (rc){
+                printf("ERROR; return code from pthread_create() is %d\n", rc);
+                exit(-1);
+            }
+        }
+        printf("Created %ld threads.\n", t);
+        pthread_exit(NULL);
+    }
+
+## Thread Management
+## 线程管理
+
+### Miscellaneous Routines
+### 杂项函数
+
+pthread_self ()
+
+pthread_equal (thread1,thread2) 
+
+- pthread_self returns the unique, system assigned thread ID of the calling thread.
+- pthread_self返回调用函数自身的一个独一无二的、系统赋予的线程ID。
+- pthread_equal compares two thread IDs. If the two IDs are different 0 is returned, otherwise a non-zero value is returned.
+- pthread_equal 比较两个线程ID。如果这两个ID不相同那么返回0，否则返回一个非0值。
+- Note that for both of these routines, the thread identifier objects are opaque and can not be easily inspected. Because thread IDs are opaque objects, the C language equivalence operator == should not be used to compare two thread IDs against each other, or to compare a single thread ID against another value.
+- 注意：对于这两个函数，线程标识符对象是不透明的，无法轻易地检查。因为线程ID是不透明对象，不应该使用C语言中的相等操作符==来比较两个线程ID。
+
+pthread_once (once_control, init_routine) 
+
+- pthread_once executes the init_routine exactly once in a process. The first call to this routine by any thread in the process executes the given init_routine, without parameters. Any subsequent call will have no effect.
+- 在一个进程中，pthread_once 恰好执行init_routine一次。由进程中的任何线程引起的对这个函数的第一次调用会无参地执行给定的init_routine。任何随后的调用都将不会起作用。
+- The init_routine routine is typically an initialization routine.
+- init_routine函数一般是一个初始化函数。
+- The once_control parameter is a synchronization control structure that requires initialization prior to calling pthread_once. For example:
+- once_control参数是一个同步控制结构，在调用pthread_once之前需要初始化。例如：
+
+    pthread_once_t once_control = PTHREAD_ONCE_INIT;
+
+## Pthread Exercise 1
+## pthread练习1
+
+### Getting Started and Thread Management Routines
+### 准备开始以及线程管理函数
+
+#### Overview:
+#### 概览：
+
+- Login to an LC cluster using your workshop username and OTP token
+- 使用你的讲习班用户名和OTP令牌登录一台LC集群
+- Copy the exercise files to your home directory
+- 复制练习文件到你的家目录
+- Familiarize yourself with LC's Pthreads environment
+- 让你自己熟悉LC的pthread环境
+- Write a simple "Hello World" Pthreads program 
+- 编写一个简单的“Hello World”pthread程序
+- Successfully compile your program
+- 成功地编译你的程序
+- Successfully run your program - several different ways 
+- 成功地运行你的程序——以多种不同的方式
+- Review, compile, run and/or debug some related Pthreads programs (provided) 
+- 检查、编译、运行以及调试一些相关的Pthread程序（已提供）
+
+[GO TO THE EXERCISE HERE](https://computing.llnl.gov/tutorials/pthreads/exercise.html#Exercise1)
+
+[点击此处跳转到练习](https://computing.llnl.gov/tutorials/pthreads/exercise.html#Exercise1)
+
+
