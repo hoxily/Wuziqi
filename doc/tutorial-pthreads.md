@@ -1010,10 +1010,13 @@ This example performs argument passing incorrectly. It passes the address of var
 #### Routines:
 #### 函数：
 
-    [pthread_join](https://computing.llnl.gov/tutorials/pthreads/man/pthread_join.txt) (threadid,status)
-    [pthread_detach](https://computing.llnl.gov/tutorials/pthreads/man/pthread_detach.txt) (threadid)
-    [pthread_attr_setdetachstate](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_setdetachstate.txt) (attr,detachstate)
-    [pthread_attr_getdetachstate](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_getdetachstate.txt) (attr,detachstate) 
+[pthread_join](https://computing.llnl.gov/tutorials/pthreads/man/pthread_join.txt) (threadid,status)
+
+[pthread_detach](https://computing.llnl.gov/tutorials/pthreads/man/pthread_detach.txt) (threadid)
+
+[pthread_attr_setdetachstate](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_setdetachstate.txt) (attr,detachstate)
+
+[pthread_attr_getdetachstate](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_getdetachstate.txt) (attr,detachstate) 
 
 #### Joining:
 #### 连接：
@@ -1142,13 +1145,13 @@ This example demonstrates how to "wait" for thread completions by using the Pthr
 #### Routines:
 #### 函数：
 
-pthread_attr_getstacksize (attr, stacksize)
+[pthread_attr_getstacksize](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_getstacksize.txt) (attr, stacksize)
 
-pthread_attr_setstacksize (attr, stacksize)
+[pthread_attr_setstacksize](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_setstacksize.txt) (attr, stacksize)
 
-pthread_attr_getstackaddr (attr, stackaddr)
+[pthread_attr_getstackaddr](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_getstackaddr.txt) (attr, stackaddr)
 
-pthread_attr_setstackaddr (attr, stackaddr) 
+[pthread_attr_setstackaddr](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_setstackaddr.txt) (attr, stackaddr) 
 
 #### Preventing Stack Problems:
 #### 避免栈问题：
@@ -1194,7 +1197,7 @@ pthread_attr_setstackaddr (attr, stackaddr)
         <tr>
             <td>AMD Opteron</td>
             <td>8</td>
-            <td>16<td>
+            <td>16</td>
             <td>2,097,152</td>
         </tr>
         <tr>
@@ -1296,9 +1299,9 @@ This example demonstrates how to query and set a thread's stack size.
 ### Miscellaneous Routines
 ### 杂项函数
 
-pthread_self ()
+[pthread_self](https://computing.llnl.gov/tutorials/pthreads/man/pthread_self.txt) ()
 
-pthread_equal (thread1,thread2) 
+[pthread_equal](https://computing.llnl.gov/tutorials/pthreads/man/pthread_equal.txt) (thread1,thread2) 
 
 - pthread_self returns the unique, system assigned thread ID of the calling thread.
 - pthread_self返回调用函数自身的一个独一无二的、系统赋予的线程ID。
@@ -1307,7 +1310,7 @@ pthread_equal (thread1,thread2)
 - Note that for both of these routines, the thread identifier objects are opaque and can not be easily inspected. Because thread IDs are opaque objects, the C language equivalence operator == should not be used to compare two thread IDs against each other, or to compare a single thread ID against another value.
 - 注意：对于这两个函数，线程标识符对象是不透明的，无法轻易地检查。因为线程ID是不透明对象，不应该使用C语言中的相等操作符==来比较两个线程ID。
 
-pthread_once (once_control, init_routine) 
+[pthread_once](https://computing.llnl.gov/tutorials/pthreads/man/pthread_once.txt) (once_control, init_routine) 
 
 - pthread_once executes the init_routine exactly once in a process. The first call to this routine by any thread in the process executes the given init_routine, without parameters. Any subsequent call will have no effect.
 - 在一个进程中，pthread_once 恰好执行init_routine一次。由进程中的任何线程引起的对这个函数的第一次调用会无参地执行给定的init_routine。任何随后的调用都将不会起作用。
@@ -1346,4 +1349,82 @@ pthread_once (once_control, init_routine)
 
 [点击此处跳转到练习](https://computing.llnl.gov/tutorials/pthreads/exercise.html#Exercise1)
 
+## Mutex Variables
+## 互斥体变量
 
+### Overview
+### 概述
+
+- Mutex is an abbreviation for "mutual exclusion". Mutex variables are one of the primary means of implementing thread synchronization and for protecting shared data when multiple writes occur.
+- Mutex是“mutual exclusion”的缩写。互斥体变量是实现线程同步以及当多次写入时保护共享数据的基本方法中的一种。
+- A mutex variable acts like a "lock" protecting access to a shared data resource. The basic concept of a mutex as used in Pthreads is that only one thread can lock (or own) a mutex variable at any given time. Thus, even if several threads try to lock a mutex only one thread will be successful. No other thread can own that mutex until the owning thread unlocks that mutex. Threads must "take turns" accessing protected data. 
+- 一个互斥体变量就像一个“锁”保护对共享数据资源的访问。Pthread中使用的基本的互斥体概念就是在任意时刻只有一个线程能锁住（或者拥有）一个互斥体变量。因此，尽管有许多线程尝试锁住一个互斥体，只有一个线程会成功。没有其他任何线程能拥有那个互斥体，直到持有线程解锁那个互斥体。线程必须“轮流”地访问被保护的数据。
+- Mutexes can be used to prevent "race" conditions. An example of a race condition involving a bank transaction is shown below: 
+- 互斥体可被用于阻止“竞态”条件。下面展示了一个涉及银行事务往来的竞态条件的例子：
+
+<table>
+    <thead>
+        <tr>
+            <th>线程1</th>
+            <th>线程2</th>
+            <th>余额</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>读取余额：1000美元</td>
+            <td></td>
+            <td>1000美元</td>
+        </tr>
+        <tr>
+            <td></td>
+            <td>读取余额：1000美元</td>
+            <td>1000美元</td>
+        </tr>
+        <tr>
+            <td></td>
+            <td>存入200美元</td>
+            <td>1000美元</td>
+        </tr>
+        <tr>
+            <td>存入200美元</td>
+            <td></td>
+            <td>1000美元</td>
+        </tr>
+        <tr>
+            <td>更新余额1000美元+200美元</td>
+            <td></td>
+            <td>1200美元</td>
+        </tr>
+        <tr>
+            <td></td>
+            <td>更新余额1000美元+200美元</td>
+            <td>1200美元</td>
+        </tr>
+    </tbody>
+</table>
+
+- In the above example, a mutex should be used to lock the "Balance" while a thread is using this shared data resource.
+- 在上面的例子中，当一个线程正在使用这个共享数据资源时，必须得使用一个互斥体来锁住“余额”。
+- Very often the action performed by a thread owning a mutex is the updating of global variables. This is a safe way to ensure that when several threads update the same variable, the final value is the same as what it would be if only one thread performed the update. The variables being updated belong to a "critical section".
+- 一个拥有互斥体的线程经常干的事情就是更新全局变量。这是一种安全的方式来确保当有多个线程更新同一个变量时，最终值就像只有一个线程干了全部的更新操作。这个变量更新操作属于一个“临界区”。
+- A typical sequence in the use of a mutex is as follows:
+- 使用互斥体的一个典型操作序列就像下面这样：
+    - Create and initialize a mutex variable
+    - 创建并且初始化一个互斥体变量
+    - Several threads attempt to lock the mutex
+    - 多个线程试图锁定这个互斥体
+    - Only one succeeds and that thread owns the mutex 
+    - 只有一个线程成功并且拥有这个互斥体
+    - The owner thread performs some set of actions 
+    - 这个拥有者线程执行一系列动作
+    - The owner unlocks the mutex
+    - 这个拥有者线程解锁这个互斥体
+    - Another thread acquires the mutex and repeats the process 
+    - 其他线程获得这个互斥体然后重复这个过程
+    - Finally the mutex is destroyed 
+    - 最终这个互斥体被销毁
+- When several threads compete for a mutex, the losers block at that call - an unblocking call is available with "trylock" instead of the "lock" call. 
+- 当有多个线程为一个互斥体竞争时，竞争失败者被阻塞在那个调用上——存在非阻塞调用“trylock”,可用来代替“lock”。
+- When protecting shared data, it is the programmer's responsibility to make sure every thread that needs to use a mutex does so. For example, if 4 threads are updating the same data, but only one uses a mutex, the data can still be corrupted.
+- 当保护共享数据时，编程人员有责任去确保每个需要使用互斥体的线程这样做。例如，如果有4个线程正在更新同一个数据，但是只有一个使用的互斥体，那么数据依然可能被损坏。
