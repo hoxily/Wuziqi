@@ -1427,4 +1427,330 @@ This example demonstrates how to query and set a thread's stack size.
 - When several threads compete for a mutex, the losers block at that call - an unblocking call is available with "trylock" instead of the "lock" call. 
 - 当有多个线程为一个互斥体竞争时，竞争失败者被阻塞在那个调用上——存在非阻塞调用“trylock”,可用来代替“lock”。
 - When protecting shared data, it is the programmer's responsibility to make sure every thread that needs to use a mutex does so. For example, if 4 threads are updating the same data, but only one uses a mutex, the data can still be corrupted.
-- 当保护共享数据时，编程人员有责任去确保每个需要使用互斥体的线程这样做。例如，如果有4个线程正在更新同一个数据，但是只有一个使用的互斥体，那么数据依然可能被损坏。
+- 当保护共享数据时，编程人员有责任去确保每个需要使用互斥体的线程这样做。例如，如果有4个线程正在更新同一个数据，但是只有一个使用了互斥体，那么数据依然可能被损坏。
+
+## Mutex Variables
+## 互斥体变量
+
+### Creating and Destroying Mutexes
+### 创建和销毁互斥体
+
+#### Routines:
+#### 函数：
+
+[pthread_mutex_init](https://computing.llnl.gov/tutorials/pthreads/man/pthread_mutex_init.txt) (mutex,attr)
+
+[pthread_mutex_destroy](https://computing.llnl.gov/tutorials/pthreads/man/pthread_mutex_destroy.txt) (mutex)
+
+[pthread_mutexattr_init](https://computing.llnl.gov/tutorials/pthreads/man/pthread_mutexattr_init.txt) (attr)
+
+[pthread_mutexattr_destroy](https://computing.llnl.gov/tutorials/pthreads/man/pthread_mutexattr_destroy.txt) (attr) 
+
+#### Usage:
+#### 用法：
+
+- Mutex variables must be declared with type pthread_mutex_t, and must be initialized before they can be used. There are two ways to initialize a mutex variable:
+- 互斥体变量必须以pthread_mutex_t类型来声明，而且在使用之前必须被初始化。有两种方式初始化一个互斥体变量：
+    1. Statically, when it is declared. For example: `pthread_mutex_t mymutex = PTHREAD_MUTEX_INITIALIZER;`
+    1. 静态地，当它声明时。示例：`pthread_mutex_t mymutex = PTHREAD_MUTEX_INITIALIZER;`
+    2. Dynamically, with the pthread_mutex_init() routine. This method permits setting mutex object attributes, attr. 
+    2. 动态地，通过pthread_mutex_init函数。这种方法允许设置互斥体对象属性——attr。
+
+The mutex is initially unlocked. 
+
+互斥体被初始化为未锁定。
+
+- The attr object is used to establish properties for the mutex object, and must be of type pthread_mutexattr_t if used (may be specified as NULL to accept defaults). The Pthreads standard defines three optional mutex attributes:
+- attr对象用于设置mutex对象的属性，并且如果有用到则必须是pthread_mutexattr_t类型（亦可置为NULL以接受默认值）。Pthread标准定义了3个可选的互斥体属性：
+    - Protocol: Specifies the protocol used to prevent priority inversions for a mutex. 
+    - 协议：指定互斥体的用于避免优先级反转的协议。
+    - Prioceiling: Specifies the priority ceiling of a mutex. 
+    - 优先级封顶：指定互斥体的优先级封顶。
+    - Process-shared: Specifies the process sharing of a mutex. 
+    - 进程共享：指定互斥体的进程共享。
+
+Note that not all implementations may provide the three optional mutex attributes. 
+
+注意：不是所有实现都会提供这三个可选的互斥体属性。
+
+- The pthread_mutexattr_init() and pthread_mutexattr_destroy() routines are used to create and destroy mutex attribute objects respectively. 
+- pthread_mutexattr_init和pthread_mutexattr_destroy函数分别用于创建和销毁互斥体属性对象。
+- pthread_mutex_destroy() should be used to free a mutex object which is no longer needed. 
+- 应该用pthread_mutex_destroy函数来释放一个不再需要的互斥体对象。
+
+## Mutex Variables
+## 互斥体变量
+
+### Locking and Unlocking Mutexes
+### 锁定与解锁互斥体
+
+#### Routines:
+#### 函数：
+
+[pthread_mutex_lock](https://computing.llnl.gov/tutorials/pthreads/man/pthread_mutex_lock.txt) (mutex)
+
+[pthread_mutex_trylock](https://computing.llnl.gov/tutorials/pthreads/man/pthread_mutex_trylock.txt) (mutex)
+
+[pthread_mutex_unlock](https://computing.llnl.gov/tutorials/pthreads/man/pthread_mutex_unlock.txt) (mutex) 
+
+#### Usage:
+#### 用法：
+
+- The pthread_mutex_lock() routine is used by a thread to acquire a lock on the specified mutex variable. If the mutex is already locked by another thread, this call will block the calling thread until the mutex is unlocked. 
+- pthread_mutex_lock函数用于让一个线程在指定的互斥体变量上获得锁。如果这个互斥体已经被其他线程锁定，该调用将会阻塞调用线程直至这个互斥体被解锁。
+- pthread_mutex_trylock() will attempt to lock a mutex. However, if the mutex is already locked, the routine will return immediately with a "busy" error code. This routine may be useful in preventing deadlock conditions, as in a priority-inversion situation. 
+- pthread_mutex_trylock函数将会试图去锁定一个互斥体。然而，如果该互斥体已经被锁定，这个函数将会立即返回一个指示“忙”的错误码。在一个优先级反转的情况下，这个函数可能有助于预防死锁条件。
+- pthread_mutex_unlock() will unlock a mutex if called by the owning thread. Calling this routine is required after a thread has completed its use of protected data if other threads are to acquire the mutex for their work with the protected data. An error will be returned if:
+- pthread_mutex_unlock函数将会解锁一个互斥体，如果被锁拥有者线程调用。在一个线程完成保护数据的使用之后，如果其他线程将要获取这个互斥体以完成涉级保护数据的工作，那么需要调用这个函数。如下情况将会返回一个错误：
+    - If the mutex was already unlocked
+    - 如果互斥体已经被解锁
+    - If the mutex is owned by another thread
+    - 如果互斥体被其他线程拥有
+- There is nothing "magical" about mutexes...in fact they are akin to a "gentlemen's agreement" between participating threads. It is up to the code writer to insure that the necessary threads all make the the mutex lock and unlock calls correctly. The following scenario demonstrates a logical error: 
+- 关于互斥体不存在“魔法”。事实上它们类型于参与线程之间的“君子协定”。这取决于代码编写者保证必要的线程都正确地调用互斥体加锁、解锁函数。下面的场景展示了一个逻辑错误：
+
+<br />
+
+    Thread 1     Thread 2     Thread 3
+    Lock         Lock         
+    A = 2        A = A+1      A = A*B
+    Unlock       Unlock    
+
+Question: When more than one thread is waiting for a locked mutex, which thread will be granted the lock first after it is released? 
+
+问题：当超过1个以上的线程等待一个锁定的互斥体时，哪个线程将会在互斥体解锁后被授予这个锁？
+
+Answer: Unless thread priority scheduling (not covered) is used, the assignment will be left to the native system scheduler and may appear to be more or less random.
+
+答案：除非使用了线程优先级调度（未涉及），赋予操作将会留给本地系统调度者，看似或多或少是随机的。
+
+### Example: Using Mutexes
+### 例子：使用互斥体
+
+#### Example Code - Using Mutexes
+#### 示例代码——使用互斥体
+
+This example program illustrates the use of mutex variables in a threads program that performs a dot product. The main data is made available to all threads through a globally accessible structure. Each thread works on a different part of the data. The main thread waits for all the threads to complete their computations, and then it prints the resulting sum. 
+
+这个示例程序说明了在一个求点积的多线程程序中互斥体变量的用法。主要数据通过一个全局可访问结构使得所有线程都可使用。每个线程工作于数据的不同部分。主线程等待所有线程完成它们的计算，然后打印作为结果的总和。
+
+    #include <pthread.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    /*   
+    The following structure contains the necessary information  
+    to allow the function "dotprod" to access its input data and 
+    place its output into the structure.  
+    */
+
+    typedef struct 
+    {
+        double      *a;
+        double      *b;
+        double     sum; 
+        int     veclen; 
+    } DOTDATA;
+
+    /* Define globally accessible variables and a mutex */
+
+    #define NUMTHRDS 4
+    #define VECLEN 100
+    DOTDATA dotstr; 
+    pthread_t callThd[NUMTHRDS];
+    pthread_mutex_t mutexsum;
+
+    /*
+    The function dotprod is activated when the thread is created.
+    All input to this routine is obtained from a structure 
+    of type DOTDATA and all output from this function is written into
+    this structure. The benefit of this approach is apparent for the 
+    multi-threaded program: when a thread is created we pass a single
+    argument to the activated function - typically this argument
+    is a thread number. All  the other information required by the 
+    function is accessed from the globally accessible structure. 
+    */
+
+    void *dotprod(void *arg)
+    {
+
+        /* Define and use local variables for convenience */
+
+        int i, start, end, len ;
+        long offset;
+        double mysum, *x, *y;
+        offset = (long)arg;
+
+        len = dotstr.veclen;
+        start = offset*len;
+        end   = start + len;
+        x = dotstr.a;
+        y = dotstr.b;
+
+        /*
+        Perform the dot product and assign result
+        to the appropriate variable in the structure. 
+        */
+
+        mysum = 0;
+        for (i=start; i<end ; i++) 
+        {
+            mysum += (x[i] * y[i]);
+        }
+
+        /*
+        Lock a mutex prior to updating the value in the shared
+        structure, and unlock it upon updating.
+        */
+        pthread_mutex_lock (&mutexsum);
+        dotstr.sum += mysum;
+        pthread_mutex_unlock (&mutexsum);
+
+        pthread_exit((void*) 0);
+    }
+
+    /* 
+    The main program creates threads which do all the work and then 
+    print out result upon completion. Before creating the threads,
+    the input data is created. Since all threads update a shared structure, 
+    we need a mutex for mutual exclusion. The main thread needs to wait for
+    all threads to complete, it waits for each one of the threads. We specify
+    a thread attribute value that allow the main thread to join with the
+    threads it creates. Note also that we free up handles when they are
+    no longer needed.
+    */
+
+    int main (int argc, char *argv[])
+    {
+        long i;
+        double *a, *b;
+        void *status;
+        pthread_attr_t attr;
+
+        /* Assign storage and initialize values */
+        a = (double*) malloc (NUMTHRDS*VECLEN*sizeof(double));
+        b = (double*) malloc (NUMTHRDS*VECLEN*sizeof(double));
+
+        for (i=0; i<VECLEN*NUMTHRDS; i++)
+        {
+            a[i]=1.0;
+            b[i]=a[i];
+        }
+
+        dotstr.veclen = VECLEN; 
+        dotstr.a = a; 
+        dotstr.b = b; 
+        dotstr.sum=0;
+
+        pthread_mutex_init(&mutexsum, NULL);
+
+        /* Create threads to perform the dotproduct  */
+        pthread_attr_init(&attr);
+        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+        for(i=0; i<NUMTHRDS; i++)
+        {
+            /* 
+            Each thread works on a different set of data.
+            The offset is specified by 'i'. The size of
+            the data for each thread is indicated by VECLEN.
+            */
+            pthread_create(&callThd[i], &attr, dotprod, (void *)i);
+        }
+
+        pthread_attr_destroy(&attr);
+
+        /* Wait on the other threads */
+        for(i=0; i<NUMTHRDS; i++)
+        {
+            pthread_join(callThd[i], &status);
+        }
+
+        /* After joining, print out the results and cleanup */
+        printf ("Sum =  %f \n", dotstr.sum);
+        free (a);
+        free (b);
+        pthread_mutex_destroy(&mutexsum);
+        pthread_exit(NULL);
+    }
+
+## Condition Variables
+## 条件变量
+
+### Overview
+### 概述
+
+- Condition variables provide yet another way for threads to synchronize. While mutexes implement synchronization by controlling thread access to data, condition variables allow threads to synchronize based upon the actual value of data. 
+- 条件变量给线程同步提供了另一种方法。虽然互斥体通过控制线程访问数据来实现同步，但是条件变量允许线程依据数据的实际值来同步。
+- Without condition variables, the programmer would need to have threads continually polling (possibly in a critical section), to check if the condition is met. This can be very resource consuming since the thread would be continuously busy in this activity. A condition variable is a way to achieve the same goal without polling. 
+- 如果没有条件变量，那么程序员需要让线程持续地轮询（很可能位于一个临界区里），来检查条件是否满足。这将会是非常消耗资源的，因为线程将会忙于这个轮询活动。条件变量是一种达到相同目的却无需轮询的方法。
+- A condition variable is always used in conjunction with a mutex lock. 
+- 条件变量总是结合互斥锁一起使用。
+- A representative sequence for using condition variables is shown below. 
+- 一个典型的使用条件变量操作序列显示如下。
+
+<table>
+    <tbody>
+        <tr>
+            <td>
+                <h3>Main Thread</h3>
+                <ul>
+                    <li>Declare and initialize global data/variables which require synchronization (such as "count") </li>
+                    <li>声明和初始化需要同步的全局数据/变量（例如“count”）</li>
+                    <li>Declare and initialize a condition variable object </li>
+                    <li>声明和初始化一个条件变量对象</li>
+                    <li>Declare and initialize an associated mutex</li>
+                    <li>声明和初始化一个关联的互斥体</li>
+                    <li>Create threads A and B to do work</li>
+                    <li>创建线程A和线程B去做苦工</li>
+                </ul>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <h3>Thread A</h3>
+                <ul>
+                    <li>Do work up to the point where a certain condition must occur (such as "count" must reach a specified value) </li>
+                    <li>做苦工直到一个特定的条件出现（例如“count”必须达到一个指定值）</li>
+                    <li>Lock associated mutex and check value of a global variable</li>
+                    <li>锁定相关联的互斥体并且检查全局的变量的值</li>
+                    <li>Call pthread_cond_wait() to perform a blocking wait for signal from Thread-B. Note that a call to pthread_cond_wait() automatically and atomically unlocks the associated mutex variable so that it can be used by Thread-B. </li>
+                    <li>调用pthread_cond_wait函数以执行一个阻塞的等待，等待来自Thread-B的信号。注意：对pthread_cond_wait的调用会自动地、原子地解锁相关联的互斥体变量，这样一来Thread-B就能使用它。</li>
+                    <li>When signalled, wake up. Mutex is automatically and atomically locked. </li>
+                    <li>当收到信号时，醒过来。互斥体被自动地、原子地锁定。</li>
+                    <li>Explicitly unlock mutex</li>
+                    <li>明确地解锁互斥体</li>
+                    <li>Continue</li>
+                    <li>继续</li>
+                </ul>
+            </td>
+            <td>
+                <h3>Thread B</h3>
+                <ul>
+                    <li>Do work </li>
+                    <li>做工作</li>
+                    <li>Lock associated mutex </li>
+                    <li>锁定相关联的互斥体</li>
+                    <li>Change the value of the global variable that Thread-A is waiting upon.</li>
+                    <li>改变线程A正在等待的全局变量</li>
+                    <li>Check value of the global Thread-A wait variable. If it fulfills the desired condition, signal Thread-A. </li>
+                    <li>检查线程A等待的全局变量的值。如果它满足所需条件，发信号给线程A。</li>
+                    <li>Unlock mutex.</li>
+                    <li>解锁互斥体</li>
+                    <li>Continue</li>
+                    <li>继续</li>
+                </ul>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <h3>Main Thread</h3>
+                <ul>
+                    <li>Join / Continue </li>
+                    <li>连接/继续</li>
+                </ul>
+            </td>
+        </tr>
+    </tbody>
+</table>
+
