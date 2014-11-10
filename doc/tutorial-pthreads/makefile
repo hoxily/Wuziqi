@@ -1,6 +1,6 @@
 all: fork.out pthread_create.out hello.out hello_arg1.out hello_arg2.out
 all: hello_arg3.out join.out thread_stack_control.out
-all: dot_product_mutex.out dot_product_serial.out
+all: dot_product_mutex.out dot_product_serial.out condition_variable.out
 fork.out: fork.c
 	gcc -o fork.out fork.c
 pthread_create.out: pthread_create.c
@@ -21,3 +21,5 @@ dot_product_mutex.out: dot_product_mutex.c
 	gcc -Wall -o dot_product_mutex.out -lpthread dot_product_mutex.c
 dot_product_serial.out: dot_product_serial.c
 	gcc -Wall -o dot_product_serial.out -lpthread dot_product_serial.c
+condition_variable.out: condition_variable.c
+	gcc -Wall -o condition_variable.out -lpthread condition_variable.c

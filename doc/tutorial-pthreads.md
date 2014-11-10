@@ -1689,10 +1689,10 @@ This example program illustrates the use of mutex variables in a threads program
 - A representative sequence for using condition variables is shown below. 
 - 一个典型的使用条件变量操作序列显示如下。
 
-<table>
+<table width="100%">
     <tbody>
         <tr>
-            <td>
+            <td colspan="2">
                 <h3>Main Thread</h3>
                 <ul>
                     <li>Declare and initialize global data/variables which require synchronization (such as "count") </li>
@@ -1743,7 +1743,7 @@ This example program illustrates the use of mutex variables in a threads program
             </td>
         </tr>
         <tr>
-            <td>
+            <td colspan="2">
                 <h3>Main Thread</h3>
                 <ul>
                     <li>Join / Continue </li>
@@ -1753,4 +1753,255 @@ This example program illustrates the use of mutex variables in a threads program
         </tr>
     </tbody>
 </table>
+
+## Condition Variables
+## 条件变量
+
+### Creating and Destroying Condition Variables
+### 创建和销毁条件变量
+
+#### Routines:
+#### 函数：
+
+[pthread_cond_init](https://computing.llnl.gov/tutorials/pthreads/man/pthread_cond_init.txt) (condition,attr)
+
+[pthread_cond_destroy](https://computing.llnl.gov/tutorials/pthreads/man/pthread_cond_destroy.txt) (condition)
+
+[pthread_condattr_init](https://computing.llnl.gov/tutorials/pthreads/man/pthread_condattr_init.txt) (attr)
+
+[pthread_condattr_destroy](https://computing.llnl.gov/tutorials/pthreads/man/pthread_condattr_destroy.txt) (attr) 
+
+#### Usage:
+#### 用法：
+
+- Condition variables must be declared with type pthread_cond_t, and must be initialized before they can be used. There are two ways to initialize a condition variable: 
+- 条件变量必须以pthread_cond_t类型声明，而且必须在使用之前初始化。有两种方法初始化一个条件变量：
+    1. Statically, when it is declared. For example: `pthread_cond_t myconvar = PTHREAD_COND_INITIALIZER;`
+    1. 静态地，当它被声明时。例如：`pthread_cond_t myconvar = PTHREAD_COND_INITIALIZER;`
+    2. Dynamically, with the pthread_cond_init() routine. The ID of the created condition variable is returned to the calling thread through the condition parameter. This method permits setting condition variable object attributes, attr. 
+    2. 动态地，利用pthread_cond_init函数。被创建的条件变量的ID通过condition参数被返回调用线程。这个方法允许设置条件变量的属性，attr。
+- The optional attr object is used to set condition variable attributes. There is only one attribute defined for condition variables: process-shared, which allows the condition variable to be seen by threads in other processes. The attribute object, if used, must be of type pthread_condattr_t (may be specified as NULL to accept defaults). 
+- 可选的attr对象用于设置条件变量属性。只存在一个条件变量属性：process-shared，该属性允许条件变量能被其他进程中的线程看到。如果用到属性对象，那么它必须是pthread_condattr_t类型（也可以置为NULL来接受默认值）。
+
+Note that not all implementations may provide the process-shared attribute.
+
+注意：不是所有实现都提供了process-shared属性。
+
+- The pthread_condattr_init() and pthread_condattr_destroy() routines are used to create and destroy condition variable attribute objects. 
+- pthread_condattr_init和pthread_condattr_destroy函数用于创建和销毁条件变量属性对象。
+- pthread_cond_destroy() should be used to free a condition variable that is no longer needed.
+- 当一个条件变量不再需要时，应该使用pthread_cond_destroy函数销毁它。
+
+## Condition Variables
+## 条件变量
+
+### Waiting and Signaling on Condition Variables
+### 在条件变量上等待和发信号
+
+#### Routines:
+#### 函数：
+
+[pthread_cond_wait](https://computing.llnl.gov/tutorials/pthreads/man/pthread_cond_wait.txt) (condition,mutex)
+
+[pthread_cond_signal](https://computing.llnl.gov/tutorials/pthreads/man/pthread_cond_signal.txt) (condition)
+
+[pthread_cond_broadcast](https://computing.llnl.gov/tutorials/pthreads/man/pthread_cond_broadcast.txt) (condition) 
+
+#### Usage:
+#### 用法：
+
+- pthread_cond_wait() blocks the calling thread until the specified condition is signalled. This routine should be called while mutex is locked, and it will automatically release the mutex while it waits. After signal is received and thread is awakened, mutex will be automatically locked for use by the thread. The programmer is then responsible for unlocking mutex when the thread is finished with it. 
+- pthread_cond_wait函数会阻塞调用线程直到指定的condition收到信号。这个函数应该在mutex是已锁定的情况下调用，当函数等待时它将会自动地解锁这个mutex。收到信号之后线程被唤醒，mutex将会被自动地上锁以供线程使用。程序员负责在线程使用完之后解锁mutex。
+
+Recommendation: Using a WHILE loop instead of an IF statement (see watch_count routine in example below) to check the waited for condition can help deal with several potential problems, such as: 
+
+建议：使用WHILE环境代替IF语句（见下面例子中的watch_count函数）来检查等待条件，这能帮助处理许多潜在的问题，例如：
+
+    - If several threads are waiting for the same wake up signal, they will take turns acquiring the mutex, and any one of them can then modify the condition they all waited for. 
+    - 如果多个线程正在等待同一个唤醒信号，那么它们将会依次取得互斥体，然后它们中的任意一个能修改它们都在等待的条件。
+    - If the thread received the signal in error due to a program bug 
+    - 如果由于程序bug，线程错误地收到信号
+    - The Pthreads library is permitted to issue spurious wake ups to a waiting thread without violating the standard. 
+    - 在不违背标准的条件下，Pthread库是允许发出虚假的唤醒信号给一个正在等待的线程。
+- The pthread_cond_signal() routine is used to signal (or wake up) another thread which is waiting on the condition variable. It should be called after mutex is locked, and must unlock mutex in order for pthread_cond_wait() routine to complete. 
+- pthread_cond_signal函数用于发信号（或者说唤醒）其他正在等待这个条件变量的线程。该函数应该在mutex锁定后才能调用，并且必须解锁mutex以使pthread_cond_wait函数完成。
+- The pthread_cond_broadcast() routine should be used instead of pthread_cond_signal() if more than one thread is in a blocking wait state. 
+- 如果超过1个以上的线程正处于阻塞状态，那么应该使用pthread_cond_broadcast函数代替pthread_cond_signal函数。
+- It is a logical error to call pthread_cond_signal() before calling pthread_cond_wait().
+- 在调用pthread_cond_wait之前调用pthread_cond_signal是一个逻辑错误。
+
+Proper locking and unlocking of the associated mutex variable is essential when using these routines. For example: 
+
+使用这些函数时，正确地上锁和解锁相关联的互斥体变量是必要的。例如：
+
+- Failing to lock the mutex before calling pthread_cond_wait() may cause it NOT to block. 
+- 在调用pthread_cond_wait之前没能锁定互斥体可能会导致它不能阻塞。
+- Failing to unlock the mutex after calling pthread_cond_signal() may not allow a matching pthread_cond_wait() routine to complete (it will remain blocked).
+- 在调用pthread_cond_signal函数之后没能解锁互斥体有可能导致配对的pthread_cond_wait函数不能完成（它将会保持阻塞）。
+
+### Example: Using Condition Variables
+### 示例：使用条件变量
+
+#### Example Code - Using Condition Variables
+#### 示例代码——使用条件变量
+
+This simple example code demonstrates the use of several Pthread condition variable routines. The main routine creates three threads. Two of the threads perform work and update a "count" variable. The third thread waits until the count variable reaches a specified value. 
+
+这个简单的例子展示了多个Pthread条件变量函数的使用。主函数创建了3个线程。其中的2个执行苦工并且更新一个名叫“count”的变量。第三个线程等待count变量达到一个指定的值。
+
+    #include <pthread.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+
+    #define NUM_THREADS  3
+    #define TCOUNT 10
+    #define COUNT_LIMIT 12
+
+    int     count = 0;
+    int     thread_ids[3] = {0,1,2};
+    pthread_mutex_t count_mutex;
+    pthread_cond_t count_threshold_cv;
+
+    void *inc_count(void *t) 
+    {
+        int i;
+        long my_id = (long)t;
+
+        for (i=0; i<TCOUNT; i++) {
+            pthread_mutex_lock(&count_mutex);
+            count++;
+
+            /* 
+            Check the value of count and signal waiting thread when condition is
+            reached.  Note that this occurs while mutex is locked. 
+            */
+            if (count == COUNT_LIMIT) {
+                pthread_cond_signal(&count_threshold_cv);
+                printf("inc_count(): thread %ld, count = %d  Threshold reached.\n", my_id, count);
+            }
+            printf("inc_count(): thread %ld, count = %d, unlocking mutex\n", my_id, count);
+            pthread_mutex_unlock(&count_mutex);
+
+            /* Do some "work" so threads can alternate on mutex lock */
+            sleep(1);
+        }
+        pthread_exit(NULL);
+    }
+
+    void *watch_count(void *t) 
+    {
+        long my_id = (long)t;
+
+        printf("Starting watch_count(): thread %ld\n", my_id);
+
+        /*
+        Lock mutex and wait for signal.  Note that the pthread_cond_wait 
+        routine will automatically and atomically unlock mutex while it waits. 
+        Also, note that if COUNT_LIMIT is reached before this routine is run by
+        the waiting thread, the loop will be skipped to prevent pthread_cond_wait
+        from never returning. 
+        */
+        pthread_mutex_lock(&count_mutex);
+        while (count<COUNT_LIMIT) {
+            pthread_cond_wait(&count_threshold_cv, &count_mutex);
+            printf("watch_count(): thread %ld Condition signal received.\n", my_id);
+            count += 125;
+            printf("watch_count(): thread %ld count now = %d.\n", my_id, count);
+        }
+        pthread_mutex_unlock(&count_mutex);
+        pthread_exit(NULL);
+    }
+
+    int main (int argc, char *argv[])
+    {
+        int i;
+        long t1=1, t2=2, t3=3;
+        pthread_t threads[3];
+        pthread_attr_t attr;
+
+        /* Initialize mutex and condition variable objects */
+        pthread_mutex_init(&count_mutex, NULL);
+        pthread_cond_init (&count_threshold_cv, NULL);
+
+        /* For portability, explicitly create threads in a joinable state */
+        pthread_attr_init(&attr);
+        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+        pthread_create(&threads[0], &attr, watch_count, (void *)t1);
+        pthread_create(&threads[1], &attr, inc_count, (void *)t2);
+        pthread_create(&threads[2], &attr, inc_count, (void *)t3);
+
+        /* Wait for all threads to complete */
+        for (i=0; i<NUM_THREADS; i++) {
+            pthread_join(threads[i], NULL);
+        }
+        printf ("Main(): Waited on %d  threads. Done.\n", NUM_THREADS);
+
+        /* Clean up and exit */
+        pthread_attr_destroy(&attr);
+        pthread_mutex_destroy(&count_mutex);
+        pthread_cond_destroy(&count_threshold_cv);
+        pthread_exit(NULL);
+    }
+
+## Monitoring, Debugging and Performance Analysis Tools for Pthreads
+## Pthread的监视、调试以及性能分析工具
+
+### Monitoring and Debugging Pthreads:
+### 监视和调试Pthread：
+
+- Debuggers vary in their ability to handle Pthreads. The TotalView debugger is LC's recommended debugger for parallel programs. It is well suited for both monitoring and debugging threaded programs. 
+- 不同的调试器处理Pthread的能力有差异。LC推荐TotalView调试器调试并行程序。它非常合适于监视多线程程序也非常合适于调试多线程程序。
+- An example screenshot from a TotalView session using a threaded code is shown below.
+- 下面展示了TotalView使用一个多线程代码会话的屏幕截图。
+    1. Stack Trace Pane: Displays the call stack of routines that the selected thread is executing. 
+    1. 堆栈踪迹窗格：显示了选中的正在执行的线程的函数调用栈。
+    2. Status Bars: Show status information for the selected thread and its associated process. 
+    2. 状态栏：显示选中的线程以及相关联的进程的状态信息。
+    3. Stack Frame Pane: Shows a selected thread's stack variables, registers, etc. 
+    3. 栈帧窗格：显示选中的线程的栈变量、寄存器等。
+    4. Source Pane: Shows the source code for the selected thread.
+    4. 源码窗格：显示选中线程的源代码。
+    5. Root Window showing all threads 
+    5. 根窗口显示了所有线程
+    6. Threads Pane: Shows threads associated with the selected process 
+    6. 线程窗格：显示与选中的进程关联的线程
+
+<br />
+
+![TotalView Debugger Screenshot](./tutorial-pthreads/totalview_debugger.gif)
+
+- See the [TotalView Debugger tutorial](https://computing.llnl.gov/tutorials/totalview/index.html) for details. 
+- 详细请看[TotalView调试器教程](https://computing.llnl.gov/tutorials/totalview/index.html)。
+- The Linux ps command provides several flags for viewing thread information. Some examples are shown below. See the man page for details. 
+- Linux的ps命令提供了许多用于查看线程信息的标志。下面显示了一例子。查看[man手册](https://computing.llnl.gov/tutorials/pthreads/man/ps.txt)以获取详细信息。
+
+<br />
+
+    % ps -Lf 
+    UID        PID  PPID   LWP  C NLWP STIME TTY          TIME CMD
+    blaise   22529 28240 22529  0    5 11:31 pts/53   00:00:00 a.out
+    blaise   22529 28240 22530 99    5 11:31 pts/53   00:01:24 a.out
+    blaise   22529 28240 22531 99    5 11:31 pts/53   00:01:24 a.out
+    blaise   22529 28240 22532 99    5 11:31 pts/53   00:01:24 a.out
+    blaise   22529 28240 22533 99    5 11:31 pts/53   00:01:24 a.out
+
+    % ps -T 
+      PID  SPID TTY          TIME CMD
+    22529 22529 pts/53   00:00:00 a.out
+    22529 22530 pts/53   00:01:49 a.out
+    22529 22531 pts/53   00:01:49 a.out
+    22529 22532 pts/53   00:01:49 a.out
+    22529 22533 pts/53   00:01:49 a.out
+
+    % ps -Lm 
+      PID   LWP TTY          TIME CMD
+    22529     - pts/53   00:18:56 a.out
+        - 22529 -        00:00:00 -
+        - 22530 -        00:04:44 -
+        - 22531 -        00:04:44 -
+        - 22532 -        00:04:44 -
+        - 22533 -        00:04:44 -
+
+- LC's Linux clusters also provide the top command to monitor processes on a node. If used with the -H flag, the threads contained within a process will be visible. An example of the top -H command is shown below. The parent process is PID 18010 which spawned three threads, shown as PIDs 18012, 18013 and 18014. 
+- LC的Linux集群也提供了top命令来监视节点上的进程。如果使用-H标识，包括于进程中的线程将会可见。一个top -H命令例子结果如下所示。父进程的PID为18010，它繁衍出了三个线程，显示为PID18012、PID18013、PID18014.
 
