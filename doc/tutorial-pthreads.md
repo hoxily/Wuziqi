@@ -1817,6 +1817,7 @@ Recommendation: Using a WHILE loop instead of an IF statement (see watch_count r
 
 建议：使用WHILE环境代替IF语句（见下面例子中的watch_count函数）来检查等待条件，这能帮助处理许多潜在的问题，例如：
 
+- 
     - If several threads are waiting for the same wake up signal, they will take turns acquiring the mutex, and any one of them can then modify the condition they all waited for. 
     - 如果多个线程正在等待同一个唤醒信号，那么它们将会依次取得互斥体，然后它们中的任意一个能修改它们都在等待的条件。
     - If the thread received the signal in error due to a program bug 
@@ -2005,3 +2006,279 @@ This simple example code demonstrates the use of several Pthread condition varia
 - LC's Linux clusters also provide the top command to monitor processes on a node. If used with the -H flag, the threads contained within a process will be visible. An example of the top -H command is shown below. The parent process is PID 18010 which spawned three threads, shown as PIDs 18012, 18013 and 18014. 
 - LC的Linux集群也提供了top命令来监视节点上的进程。如果使用-H标识，包括于进程中的线程将会可见。一个top -H命令例子结果如下所示。父进程的PID为18010，它繁衍出了三个线程，显示为PID18012、PID18013、PID18014.
 
+![top-H](./tutorial-pthreads/top-H.gif)
+
+#### Performance Analysis Tools:
+#### 性能分析工具：
+
+- There are a variety of performance analysis tools that can be used with threaded programs. Searching the web will turn up a wealth of information. 
+- 有许多性能分析工具可被用于多线程程序。搜索网络将会出现大量的信息。
+- At LC, the list of supported computing tools can be found at: [computing.llnl.gov/code/content/software_tools.php](https://computing.llnl.gov/code/content/software_tools.php). 
+- 在LC，受支持的计算机工具清单可在这里找到：[computing.llnl.gov/code/content/software_tools.php](https://computing.llnl.gov/code/content/software_tools.php)
+- These tools vary significantly in their complexity, functionality and learning curve. Covering them in detail is beyond the scope of this tutorial. 
+- 这些工具在它们的复杂性、功能性和学习曲线上差异巨大。详细涵盖它们超出了本教程的范围。
+- Some tools worth investigating, specifically for threaded codes, include: 
+- 一些工具值得研究，特别是那些针对多线程代码的，包括：
+    - Open|SpeedShop
+    - TAU
+    - PAPI 
+    - Intel VTune Amplifier
+    - ThreadSpotter 
+
+## LLNL Specific Information and Recommendations
+## LLNL实验室特有的信息和建议
+
+This section describes details specific to Livermore Computing's systems. 
+
+本节描述Livermore计算机系统的详细特征。
+
+#### Implementations:
+#### 实现：
+
+- All LC production systems include a Pthreads implementation that follows draft 10 (final) of the POSIX standard. This is the preferred implementation. 
+- 所有的LC产品系统都包含一个遵循POSIX draft 10（最终版）标准的Pthread实现。这是首选的实现。
+- Implementations differ in the maximum number of threads that a process may create. They also differ in the default amount of thread stack space. 
+- 不同的实现在进程能够创建的线程的最大数量上有差异。同样在默认的线程栈空间大小上有差异。
+
+#### Compiling:
+#### 编译：
+
+- LC maintains a number of compilers, and usually several different versions of each - see the LC's [Supported Compilers](https://computing.llnl.gov/code/compilers.html) web page. 
+- LC维护了大量的编译器，而且通常是每种编译器的不同版本——见LC的[受支持的编译器](https://computing.llnl.gov/code/compilers.html)网页。
+- The compiler commands described in the [Compiling Threaded Programs](https://computing.llnl.gov/tutorials/pthreads/#Compiling) section apply to LC systems.
+- 在[编译多线程程序](https://computing.llnl.gov/tutorials/pthreads/#Compiling)一节讲到的编译器命令适用于LC系统。
+
+#### Mixing MPI with Pthreads:
+#### 混合MPI与Pthread：
+
+- This is the primary motivation for using Pthreads at LC. 
+- 这是在LC使用Pthread的原始动机。
+- Design: 
+- 设计：
+    - Each MPI process typically creates and then manages N threads, where N makes the best use of the available cores/node. 
+    - 每个MPI进程典型地创建和管理N个线程，这N个线程使得最佳地利用可用的核心/结点。
+    - Finding the best value for N will vary with the platform and your application's characteristics. 
+    - 找寻这个最佳N值将会因平台和你的应用程序的特点而有所变化。
+    - In general, there may be problems if multiple threads make MPI calls. The program may fail or behave unexpectedly. If MPI calls must be made from within a thread, they should be made only by one thread. 
+    - 一般来说，如果多个线程进行MPI调用将会有问题。程序可能会失败或者出现未预期的行为。如果MPI调有必须在线程里调用，那么只能被一个线程调用。
+- Compiling: 
+- 编译：
+    - Use the appropriate MPI compile command for the platform and language of choice 
+    - 针对平台和语言选择合适的MPI编译命令
+    - Be sure to include the required Pthreads flag as shown in the Compiling Threaded Programs section. 
+    - 确认包含了如编译多线程程序一节中所示的需要的Pthread标识。
+- An example code that uses both MPI and Pthreads is available below. The serial, threads-only, MPI-only and MPI-with-threads versions demonstrate one possible progression. 
+- 下面有可用的同时使用了MPI和Pthread的示例代码。串行、仅线程、仅MPI、MPI与线程混合这四个版展示了一个可能的演进。
+    - [Serial](https://computing.llnl.gov/tutorials/pthreads/samples/mpithreads_serial.c)
+    - [Pthreads only](https://computing.llnl.gov/tutorials/pthreads/samples/mpithreads_threads.c)
+    - [MPI only](https://computing.llnl.gov/tutorials/pthreads/samples/mpithreads_mpi.c)
+    - [MPI with pthreads](https://computing.llnl.gov/tutorials/pthreads/samples/mpithreads_both.c)
+    - [makefile](https://computing.llnl.gov/tutorials/pthreads/samples/mpithreads.makefile)
+
+## Topics Not Covered
+## 未涉及的主题
+
+Several features of the Pthreads API are not covered in this tutorial. These are listed below. See the [Pthread Library Routines Reference](https://computing.llnl.gov/tutorials/pthreads/#AppendixA) section for more information. 
+
+本教程没有涉及Pthread API的许多特性。这些特性罗列如下。详见[Pthread库函数参考](https://computing.llnl.gov/tutorials/pthreads/#AppendixA)一节。
+
+- Thread Scheduling
+- 线程调度
+    - Implementations will differ on how threads are scheduled to run. In most cases, the default mechanism is adequate. 
+    - 不同的实现在线程如何调度运行上有差别。绝大部分情况下，默认的机制是足够的。
+    - The Pthreads API provides routines to explicitly set thread scheduling policies and priorities which may override the default mechanisms. 
+    - Pthread API提供了函数来明确地设定线程调度策略以及优先级以覆盖默认的机制。
+    - The API does not require implementations to support these features. 
+    - API没有要求Pthread实现支持这些特性。
+- Keys: Thread-Specific Data 
+- 钥匙：线程专有数据
+    - As threads call and return from different routines, the local data on a thread's stack comes and goes. 
+    - 随着线程调用并从不同的函数返回，位于线程的栈上的本地数据来了又走了。
+    - To preserve stack data you can usually pass it as an argument from one routine to the next, or else store the data in a global variable associated with a thread. 
+    - 为了保留栈上数据你通常可以以传递参数形式从一个函数到下一个函数，或者存储数据于一个与线程关联的全局变量。
+    - Pthreads provides another, possibly more convenient and versatile, way of accomplishing this through keys. 
+    - Pthread提供了另外一个种——可能更加方便和通用的——方法来完成它，借助钥匙。
+- Mutex Protocol Attributes and Mutex Priority Management for the handling of "priority inversion" problems. 
+- 互斥体协议属性和针对“优先级反转”问题的互斥体优先级管理。
+- Condition Variable Sharing - across processes
+- 条件变量的共享——跨进程
+- Thread Cancellation 
+- 线程取消
+- Threads and Signals 
+- 线程与信号
+- Synchronization constructs - barriers and locks 
+- 同步概念——篱笆墙和锁
+
+## Pthread Exercise 2
+## Pthread练习2
+
+### Mutexes, Condition Variables and Hybrid MPI with Pthreads
+
+### 互斥体、条件变量以及MPI与Pthread的结合
+
+Overview:
+
+概览：
+
+- Login to the LC workshop cluster, if you are not already logged in 
+- 如果你还没有登录，那么登录到LC的讲习班集群
+- Mutexes: review and run the provided example codes 
+- 互斥体：检查并运行提供的示例代码
+- Condition variables: review and run the provided example codes 
+- 条件变量：检查并运行提供的示例代码
+- Hybrid MPI with Pthreads: review and run the provided example codes 
+- MPI与Pthread的结合：检查并运行提供的示例代码
+
+[GO TO THE EXERCISE HERE](https://computing.llnl.gov/tutorials/pthreads/exercise.html#Exercise2)
+
+[点击此处跳转到练习](https://computing.llnl.gov/tutorials/pthreads/exercise.html#Exercise2)
+
+This completes the tutorial.
+
+本教程结束。
+
+[Evaluation Form](https://computing.llnl.gov/tutorials/evaluation/index.html)
+
+Please complete the online evaluation form - unless you are doing the exercise, in which case please complete it at the end of the exercise.
+
+请完成这个在线的评价问卷——除非你正在做练习，若是的话请在完成练习后完成这个评价问卷。
+
+Where would you like to go now?
+
+现在你想去哪里？
+
+- [Exercise](https://computing.llnl.gov/tutorials/pthreads/exercise.html)
+- [练习](https://computing.llnl.gov/tutorials/pthreads/exercise.html)
+- [Agenda](https://computing.llnl.gov/tutorials/agenda/index.html)
+- [日程按排](https://computing.llnl.gov/tutorials/agenda/index.html)
+- [Back to the top](https://computing.llnl.gov/tutorials/pthreads/#top)
+- [回到顶部](https://computing.llnl.gov/tutorials/pthreads/#top)
+
+## References and More Information
+## 参考以及更多信息
+
+- Author: Blaise Barney, Livermore Computing. 
+- 作者：Blaise Barney，Livermore Computing。
+- POSIX Standard: [www.unix.org/version3/ieee_std.html](http://www.unix.org/version3/ieee_std.html)
+- POSIX标准：[www.unix.org/version3/ieee_std.html](http://www.unix.org/version3/ieee_std.html)
+- "Pthreads Programming". B. Nichols et al. O'Reilly and Associates. 
+- "Threads Primer". B. Lewis and D. Berg. Prentice Hall 
+- "Programming With POSIX Threads". D. Butenhof. Addison Wesley 
+- "Programming With Threads". S. Kleiman et al. Prentice Hall 
+
+## Appendix A: Pthread Library Routines Reference
+## 附录A：Pthread库函数参考
+
+For convenience, an alphabetical list of Pthread routines, linked to their corresponding man page, is provided below. 
+
+为了方便，下面提供了按照字母表排序的链接到相应man手册的Pthread函数清单。
+
+- [pthread_atfork](https://computing.llnl.gov/tutorials/pthreads/man/pthread_atfork.txt)
+- [pthread_attr_destroy](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_destroy.txt)
+- [pthread_attr_getdetachstate](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_getdetachstate.txt)
+- [pthread_attr_getguardsize](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_getguardsize.txt)
+- [pthread_attr_getinheritsched](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_getinheritsched.txt)
+- [pthread_attr_getschedparam](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_getschedparam.txt)
+- [pthread_attr_getschedpolicy](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_getschedpolicy.txt)
+- [pthread_attr_getscope](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_getscope.txt)
+- [pthread_attr_getstack](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_getstack.txt)
+- [pthread_attr_getstackaddr](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_getstackaddr.txt)
+- [pthread_attr_getstacksize](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_getstacksize.txt)
+- [pthread_attr_init](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_init.txt)
+- [pthread_attr_setdetachstate](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_setdetachstate.txt)
+- [pthread_attr_setguardsize](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_setguardsize.txt)
+- [pthread_attr_setinheritsched](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_setinheritsched.txt)
+- [pthread_attr_setschedparam](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_setschedparam.txt)
+- [pthread_attr_setschedpolicy](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_setschedpolicy.txt)
+- [pthread_attr_setscope](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_setscope.txt)
+- [pthread_attr_setstack](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_setstack.txt)
+- [pthread_attr_setstackaddr](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_setstackaddr.txt)
+- [pthread_attr_setstacksize](https://computing.llnl.gov/tutorials/pthreads/man/pthread_attr_setstacksize.txt)
+- [pthread_barrier_destroy](https://computing.llnl.gov/tutorials/pthreads/man/pthread_barrier_destroy.txt)
+- [pthread_barrier_init](https://computing.llnl.gov/tutorials/pthreads/man/pthread_barrier_init.txt)
+- [pthread_barrier_wait](https://computing.llnl.gov/tutorials/pthreads/man/pthread_barrier_wait.txt)
+- [pthread_barrierattr_destroy](https://computing.llnl.gov/tutorials/pthreads/man/pthread_barrierattr_destroy.txt)
+- [pthread_barrierattr_getpshared](https://computing.llnl.gov/tutorials/pthreads/man/pthread_barrierattr_getpshared.txt)
+- [pthread_barrierattr_init](https://computing.llnl.gov/tutorials/pthreads/man/pthread_barrierattr_init.txt)
+- [pthread_barrierattr_setpshared](https://computing.llnl.gov/tutorials/pthreads/man/pthread_barrierattr_setpshared.txt)
+- [pthread_cancel](https://computing.llnl.gov/tutorials/pthreads/man/pthread_cancel.txt)
+- [pthread_cleanup_pop](https://computing.llnl.gov/tutorials/pthreads/man/pthread_cleanup_pop.txt)
+- [pthread_cleanup_push](https://computing.llnl.gov/tutorials/pthreads/man/pthread_cleanup_push.txt)
+- [pthread_cond_broadcast](https://computing.llnl.gov/tutorials/pthreads/man/pthread_cond_broadcast.txt)
+- [pthread_cond_destroy](https://computing.llnl.gov/tutorials/pthreads/man/pthread_cond_destroy.txt)
+- [pthread_cond_init](https://computing.llnl.gov/tutorials/pthreads/man/pthread_cond_init.txt)
+- [pthread_cond_signal](https://computing.llnl.gov/tutorials/pthreads/man/pthread_cond_signal.txt)
+- [pthread_cond_timedwait](https://computing.llnl.gov/tutorials/pthreads/man/pthread_cond_timedwait.txt)
+- [pthread_cond_wait](https://computing.llnl.gov/tutorials/pthreads/man/pthread_cond_wait.txt)
+- [pthread_condattr_destroy](https://computing.llnl.gov/tutorials/pthreads/man/pthread_condattr_destroy.txt)
+- [pthread_condattr_getclock](https://computing.llnl.gov/tutorials/pthreads/man/pthread_condattr_getclock.txt)
+- [pthread_condattr_getpshared](https://computing.llnl.gov/tutorials/pthreads/man/pthread_condattr_getpshared.txt)
+- [pthread_condattr_init](https://computing.llnl.gov/tutorials/pthreads/man/pthread_condattr_init.txt)
+- [pthread_condattr_setclock](https://computing.llnl.gov/tutorials/pthreads/man/pthread_condattr_setclock.txt)
+- [pthread_condattr_setpshared](https://computing.llnl.gov/tutorials/pthreads/man/pthread_condattr_setpshared.txt)
+- [pthread_create](https://computing.llnl.gov/tutorials/pthreads/man/pthread_create.txt)
+- [pthread_detach](https://computing.llnl.gov/tutorials/pthreads/man/pthread_detach.txt)
+- [pthread_equal](https://computing.llnl.gov/tutorials/pthreads/man/pthread_equal.txt)
+- [pthread_exit](https://computing.llnl.gov/tutorials/pthreads/man/pthread_exit.txt)
+- [pthread_getconcurrency](https://computing.llnl.gov/tutorials/pthreads/man/pthread_getconcurrency.txt)
+- [pthread_getcpuclockid](https://computing.llnl.gov/tutorials/pthreads/man/pthread_getcpuclockid.txt)
+- [pthread_getschedparam](https://computing.llnl.gov/tutorials/pthreads/man/pthread_getschedparam.txt)
+- [pthread_getspecific](https://computing.llnl.gov/tutorials/pthreads/man/pthread_getspecific.txt)
+- [pthread_join](https://computing.llnl.gov/tutorials/pthreads/man/pthread_join.txt)
+- [pthread_key_create](https://computing.llnl.gov/tutorials/pthreads/man/pthread_key_create.txt)
+- [pthread_key_delete](https://computing.llnl.gov/tutorials/pthreads/man/pthread_key_delete.txt)
+- [pthread_kill](https://computing.llnl.gov/tutorials/pthreads/man/pthread_kill.txt)
+- [pthread_mutex_destroy](https://computing.llnl.gov/tutorials/pthreads/man/pthread_mutex_destroy.txt)
+- [pthread_mutex_getprioceiling](https://computing.llnl.gov/tutorials/pthreads/man/pthread_mutex_getprioceiling.txt)
+- [pthread_mutex_init](https://computing.llnl.gov/tutorials/pthreads/man/pthread_mutex_init.txt)
+- [pthread_mutex_lock](https://computing.llnl.gov/tutorials/pthreads/man/pthread_mutex_lock.txt)
+- [pthread_mutex_setprioceiling](https://computing.llnl.gov/tutorials/pthreads/man/pthread_mutex_setprioceiling.txt)
+- [pthread_mutex_timedlock](https://computing.llnl.gov/tutorials/pthreads/man/pthread_mutex_timedlock.txt)
+- [pthread_mutex_trylock](https://computing.llnl.gov/tutorials/pthreads/man/pthread_mutex_trylock.txt)
+- [pthread_mutex_unlock](https://computing.llnl.gov/tutorials/pthreads/man/pthread_mutex_unlock.txt)
+- [pthread_mutexattr_destroy](https://computing.llnl.gov/tutorials/pthreads/man/pthread_mutexattr_destroy.txt)
+- [pthread_mutexattr_getprioceiling](https://computing.llnl.gov/tutorials/pthreads/man/pthread_mutexattr_getprioceiling.txt)
+- [pthread_mutexattr_getprotocol](https://computing.llnl.gov/tutorials/pthreads/man/pthread_mutexattr_getprotocol.txt)
+- [pthread_mutexattr_getpshared](https://computing.llnl.gov/tutorials/pthreads/man/pthread_mutexattr_getpshared.txt)
+- [pthread_mutexattr_gettype](https://computing.llnl.gov/tutorials/pthreads/man/pthread_mutexattr_gettype.txt)
+- [pthread_mutexattr_init](https://computing.llnl.gov/tutorials/pthreads/man/pthread_mutexattr_init.txt)
+- [pthread_mutexattr_setprioceiling](https://computing.llnl.gov/tutorials/pthreads/man/pthread_mutexattr_setprioceiling.txt)
+- [pthread_mutexattr_setprotocol](https://computing.llnl.gov/tutorials/pthreads/man/pthread_mutexattr_setprotocol.txt)
+- [pthread_mutexattr_setpshared](https://computing.llnl.gov/tutorials/pthreads/man/pthread_mutexattr_setpshared.txt)
+- [pthread_mutexattr_settype](https://computing.llnl.gov/tutorials/pthreads/man/pthread_mutexattr_settype.txt)
+- [pthread_once](https://computing.llnl.gov/tutorials/pthreads/man/pthread_once.txt)
+- [pthread_rwlock_destroy](https://computing.llnl.gov/tutorials/pthreads/man/pthread_rwlock_destroy.txt)
+- [pthread_rwlock_init](https://computing.llnl.gov/tutorials/pthreads/man/pthread_rwlock_init.txt)
+- [pthread_rwlock_rdlock](https://computing.llnl.gov/tutorials/pthreads/man/pthread_rwlock_rdlock.txt)
+- [pthread_rwlock_timedrdlock](https://computing.llnl.gov/tutorials/pthreads/man/pthread_rwlock_timedrdlock.txt)
+- [pthread_rwlock_timedwrlock](https://computing.llnl.gov/tutorials/pthreads/man/pthread_rwlock_timedwrlock.txt)
+- [pthread_rwlock_tryrdlock](https://computing.llnl.gov/tutorials/pthreads/man/pthread_rwlock_tryrdlock.txt)
+- [pthread_rwlock_trywrlock](https://computing.llnl.gov/tutorials/pthreads/man/pthread_rwlock_trywrlock.txt)
+- [pthread_rwlock_unlock](https://computing.llnl.gov/tutorials/pthreads/man/pthread_rwlock_unlock.txt)
+- [pthread_rwlock_wrlock](https://computing.llnl.gov/tutorials/pthreads/man/pthread_rwlock_wrlock.txt)
+- [pthread_rwlockattr_destroy](https://computing.llnl.gov/tutorials/pthreads/man/pthread_rwlockattr_destroy.txt)
+- [pthread_rwlockattr_getpshared](https://computing.llnl.gov/tutorials/pthreads/man/pthread_rwlockattr_getpshared.txt)
+- [pthread_rwlockattr_init](https://computing.llnl.gov/tutorials/pthreads/man/pthread_rwlockattr_init.txt)
+- [pthread_rwlockattr_setpshared](https://computing.llnl.gov/tutorials/pthreads/man/pthread_rwlockattr_setpshared.txt)
+- [pthread_self](https://computing.llnl.gov/tutorials/pthreads/man/pthread_self.txt)
+- [pthread_setcancelstate](https://computing.llnl.gov/tutorials/pthreads/man/pthread_setcancelstate.txt)
+- [pthread_setcanceltype](https://computing.llnl.gov/tutorials/pthreads/man/pthread_setcanceltype.txt)
+- [pthread_setconcurrency](https://computing.llnl.gov/tutorials/pthreads/man/pthread_setconcurrency.txt)
+- [pthread_setschedparam](https://computing.llnl.gov/tutorials/pthreads/man/pthread_setschedparam.txt)
+- [pthread_setschedprio](https://computing.llnl.gov/tutorials/pthreads/man/pthread_setschedprio.txt)
+- [pthread_setspecific](https://computing.llnl.gov/tutorials/pthreads/man/pthread_setspecific.txt)
+- [pthread_sigmask](https://computing.llnl.gov/tutorials/pthreads/man/pthread_sigmask.txt)
+- [pthread_spin_destroy](https://computing.llnl.gov/tutorials/pthreads/man/pthread_spin_destroy.txt)
+- [pthread_spin_init](https://computing.llnl.gov/tutorials/pthreads/man/pthread_spin_init.txt)
+- [pthread_spin_lock](https://computing.llnl.gov/tutorials/pthreads/man/pthread_spin_lock.txt)
+- [pthread_spin_trylock](https://computing.llnl.gov/tutorials/pthreads/man/pthread_spin_trylock.txt)
+- [pthread_spin_unlock](https://computing.llnl.gov/tutorials/pthreads/man/pthread_spin_unlock.txt)
+- [pthread_testcancel](https://computing.llnl.gov/tutorials/pthreads/man/pthread_testcancel.txt)
+
+----
+
+https://computing.llnl.gov/tutorials/pthreads/
+
+Last Modified: 07/25/2014 03:56:40 blaiseb@llnl.gov
+
+UCRL-MI-133316
