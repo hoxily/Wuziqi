@@ -3,3 +3,5 @@
 src/client/winform/GameClient/bin/
 src/client/winform/GameClient/obj/
 Thumbs.db
+src\server\GameServer/bin/
+src\server\GameServer/obj/
