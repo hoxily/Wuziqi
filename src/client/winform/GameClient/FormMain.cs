@@ -426,7 +426,7 @@ namespace GameClient
                     AddLogToWhisper("你对 " + target + " 耳语：" + textBoxInput.Text);
                 }
                 textBoxInput.Clear();
-                e.Handled = true;
+                e.Handled = true; // 消去单行文本框按下回车后恼人的系统提示声。
             }
         }
         private void textBoxInput_KeyDown(object sender, KeyEventArgs e)
@@ -649,6 +649,11 @@ namespace GameClient
             }
             return false;
         }
+        /// <summary>
+        /// 更新提示阴影
+        /// </summary>
+        /// <param name="newX">提示阴影坐标x</param>
+        /// <param name="newY">提示阴影坐标y</param>
         private void UpdateShadow(int newX, int newY)
         {
             int xpadding = 5;
