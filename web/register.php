@@ -30,7 +30,7 @@ label {
     margin-right: 0.5em;
 }
 </style>
-<script type="text/javascript" src="script/jquery-2.1.0.min.js"></script>
+<script type="text/javascript" src="https://code.jquery.com/jquery-3.7.1.js"></script>
 <script type="text/javascript">
 /*
  * 由于IE11的Number对象不支持parseInt方法，所以需要给它加上
